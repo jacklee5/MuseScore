@@ -32,7 +32,8 @@ void InspectorFormWidget::onSelectionChanged(const QList<Ms::Element*>& elementL
 {
     m_inspectorListModel->setElementList(elementList);
 }
-
+//hypothetically
+//focusInEvent(QFocusEvent(QEvent::FocusIn, Qt::MouseFocusReason))
 void InspectorFormWidget::focusInEvent(QFocusEvent* event)
 {
     QQuickWidget::focusInEvent(event);
@@ -41,3 +42,4 @@ void InspectorFormWidget::focusInEvent(QFocusEvent* event)
         rootObject()->setFocus(true);
     }
 }
+
