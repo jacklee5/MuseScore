@@ -69,6 +69,7 @@ MenuItemList NotationContextMenu::elementItems() const
     items << makeItem(actionsRegister()->action("select-similar"))
           << makeItem(actionsRegister()->action("select-similar-staff"))
           << makeItem(actionsRegister()->action("select-similar-range"))
+          << makeItem(actionsRegister()->action("inspector"))
           << makeItem(actionsRegister()->action("select-dialog"));
 
     return items;
