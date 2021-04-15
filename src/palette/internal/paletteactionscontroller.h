@@ -23,11 +23,12 @@
 #include "modularity/ioc.h"
 #include "actions/actionable.h"
 #include "actions/iactionsdispatcher.h"
+#include "ui/iuiactionsregister.h"
+#include "async/asyncable.h"
 #include "iinteractive.h"
-#include "ipaletteactionscontroller.h"
 
 namespace mu::palette {
-class PaletteActionsController : public IPaletteActionsController, public actions::Actionable
+class PaletteActionsController : public actions::Actionable, public async::Asyncable
 {
     INJECT(palette, actions::IActionsDispatcher, dispatcher)
     INJECT(palette, framework::IInteractive, interactive)
@@ -35,12 +36,13 @@ class PaletteActionsController : public IPaletteActionsController, public action
 public:
     void init();
 
-    ValCh<bool> isMasterPaletteOpened() const override;
+    ValCh<bool> isMasterPaletteOpened() const;
 
 private:
     void toggleMasterPalette();
 
-    async::Channel<bool> m_masterPaletteOpenChannel;
+    ValCh<bool> m_masterPaletteOpened;
+    async::Channel<actions::ActionCodeList> m_actionsReceiveAvailableChanged;
 };
 }
 

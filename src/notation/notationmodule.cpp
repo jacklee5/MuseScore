@@ -22,15 +22,14 @@
 
 #include "modularity/ioc.h"
 #include "ui/iuiengine.h"
+#include "ui/iuiactionsregister.h"
 
 #include "internal/notationcreator.h"
 #include "internal/notation.h"
 #include "internal/notationactioncontroller.h"
 #include "internal/notationconfiguration.h"
 #include "internal/midiinputcontroller.h"
-
-#include "actions/iactionsregister.h"
-#include "internal/notationactions.h"
+#include "internal/notationuiactions.h"
 #include "internal/notationreadersregister.h"
 #include "internal/notationwritersregister.h"
 #include "internal/mscznotationreader.h"
@@ -69,9 +68,11 @@ using namespace mu::notation;
 using namespace mu::framework;
 using namespace mu::ui;
 using namespace mu::actions;
+using namespace mu::uicomponents;
 
 static std::shared_ptr<NotationConfiguration> s_configuration = std::make_shared<NotationConfiguration>();
 static std::shared_ptr<NotationActionController> s_actionController = std::make_shared<NotationActionController>();
+static std::shared_ptr<NotationUiActions> s_notationUiActions = std::make_shared<NotationUiActions>(s_actionController);
 static std::shared_ptr<MidiInputController> s_midiInputController = std::make_shared<MidiInputController>();
 
 static void notationscene_init_qrc()
@@ -99,9 +100,9 @@ void NotationModule::registerExports()
 
 void NotationModule::resolveImports()
 {
-    auto ar = ioc()->resolve<IActionsRegister>(moduleName());
+    auto ar = ioc()->resolve<IUiActionsRegister>(moduleName());
     if (ar) {
-        ar->reg(std::make_shared<NotationActions>());
+        ar->reg(s_notationUiActions);
     }
 
     auto ir = ioc()->resolve<IInteractiveUriRegister>(moduleName());
@@ -183,6 +184,7 @@ void NotationModule::onInit(const IApplication::RunMode&)
 {
     s_configuration->init();
     s_actionController->init();
+    s_notationUiActions->init();
     s_midiInputController->init();
 
     Notation::init();

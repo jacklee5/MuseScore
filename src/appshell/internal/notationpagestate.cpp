@@ -18,18 +18,16 @@
 //=============================================================================
 #include "notationpagestate.h"
 
-#include "log.h"
-
 using namespace mu::appshell;
 
 void NotationPageState::init()
 {
     configuration()->isNotationNavigatorVisible().ch.onReceive(this, [this](bool) {
-        m_panelVisibleChanged.send(PanelType::NotationNavigator);
+        m_panelsVisibleChanged.send({ PanelType::NotationNavigator });
     });
 
     configuration()->isNotationStatusBarVisible().ch.onReceive(this, [this](bool) {
-        m_panelVisibleChanged.send(PanelType::NotationStatusBar);
+        m_panelsVisibleChanged.send({ PanelType::NotationStatusBar });
     });
 }
 
@@ -49,11 +47,32 @@ bool NotationPageState::isPanelVisible(PanelType type) const
     case PanelType::NotationStatusBar:
         return configuration()->isNotationStatusBarVisible().val;
     case PanelType::Mixer:
-        NOT_IMPLEMENTED;
+    case PanelType::TimeLine:
+    case PanelType::Synthesizer:
+    case PanelType::SelectionFilter:
+    case PanelType::Piano:
+    case PanelType::ComparisonTool:
+    case PanelType::Undefined:
         return false;
     }
 
     return false;
+}
+
+void NotationPageState::setIsPanelsVisible(const std::map<PanelType, bool>& panelsVisible)
+{
+    PanelTypeList changedTypes;
+    for (const auto& type: panelsVisible) {
+        setIsPanelVisible(type.first, type.second);
+        changedTypes.push_back(type.first);
+    }
+
+    m_panelsVisibleChanged.send(changedTypes);
+}
+
+mu::async::Channel<PanelTypeList> NotationPageState::panelsVisibleChanged() const
+{
+    return m_panelsVisibleChanged;
 }
 
 void NotationPageState::setIsPanelVisible(PanelType type, bool visible)
@@ -67,7 +86,6 @@ void NotationPageState::setIsPanelVisible(PanelType type, bool visible)
     case PanelType::UndoRedoToolBar:
     case PanelType::PlaybackToolBar: {
         m_panelVisibleMap[type] = visible;
-        m_panelVisibleChanged.send(type);
         break;
     }
     case PanelType::NotationNavigator: {
@@ -78,14 +96,8 @@ void NotationPageState::setIsPanelVisible(PanelType type, bool visible)
         configuration()->setIsNotationStatusBarVisible(visible);
         break;
     }
-    case PanelType::Mixer: {
-        NOT_IMPLEMENTED;
+    default: {
         break;
     }
     }
-}
-
-mu::async::Channel<PanelType> NotationPageState::panelVisibleChanged() const
-{
-    return m_panelVisibleChanged;
 }

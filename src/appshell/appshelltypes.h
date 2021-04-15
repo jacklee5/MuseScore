@@ -23,6 +23,7 @@
 namespace mu::appshell {
 enum class PanelType
 {
+    Undefined = 0,
     Palette,
     Instruments,
     Inspector,
@@ -32,7 +33,21 @@ enum class PanelType
     NotationNavigator,
     NotationStatusBar,
     PlaybackToolBar,
-    Mixer
+    Mixer,
+    TimeLine,
+    Synthesizer,
+    SelectionFilter,
+    Piano,
+    ComparisonTool
+};
+using PanelTypeList = std::vector<PanelType>;
+
+enum class StartupSessionType
+{
+    StartEmpty,
+    ContinueLastSession,
+    StartWithNewScore,
+    StartWithScore
 };
 }
 

@@ -37,9 +37,9 @@ static const QString DOWNLOADING_STATUS = qtrc("extensions", "Downloading...");
 
 void ExtensionsService::init()
 {
-    fileSystem()->makePath(configuration()->extensionsSharePath());
-    fileSystem()->makePath(configuration()->extensionsDataPath());
-    QtConcurrent::run(this, &ExtensionsService::th_refreshExtensions);
+    if (configuration()->needCheckForUpdate()) {
+        QtConcurrent::run(this, &ExtensionsService::th_refreshExtensions);
+    }
 }
 
 ValCh<ExtensionsHash> ExtensionsService::extensions() const
@@ -371,7 +371,7 @@ void ExtensionsService::th_install(const QString& extensionCode,
 
     QString extensionArchivePath = download.val;
 
-    Ret unpack = extensionUnpacker()->unpack(extensionArchivePath, configuration()->extensionsSharePath().toQString());
+    Ret unpack = extensionUnpacker()->unpack(extensionArchivePath, configuration()->extensionsPath().val.toQString());
     if (!unpack) {
         LOGE() << "Error unpack" << unpack.toString();
         fileSystem()->remove(extensionArchivePath);
@@ -404,7 +404,7 @@ void ExtensionsService::th_update(const QString& extensionCode, async::Channel<E
         finishChannel->send(remove);
     }
 
-    Ret unpack = extensionUnpacker()->unpack(extensionArchivePath, configuration()->extensionsSharePath().toQString());
+    Ret unpack = extensionUnpacker()->unpack(extensionArchivePath, configuration()->extensionsPath().val.toQString());
     if (!unpack) {
         LOGE() << "Error unpack" << unpack.toString();
         finishChannel->send(unpack);

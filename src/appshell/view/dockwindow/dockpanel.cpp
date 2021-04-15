@@ -20,6 +20,7 @@
 #include "dockpanel.h"
 
 #include "log.h"
+#include "eventswatcher.h"
 
 using namespace mu::dock;
 
@@ -36,12 +37,20 @@ DockPanel::DockPanel(QQuickItem* parent)
     connect(this, &DockPanel::visibleEdited, this, [this](bool visible) {
         if (m_dock.panel->isVisible() != visible) {
             m_dock.panel->setVisible(visible);
+            if (!visible) {
+                m_isShown = false;
+            }
         }
     });
 
-    connect(m_dock.panel, &QDockWidget::visibilityChanged, [this](bool) {
-        setVisible(m_dock.panel->isVisible());
+    connect(m_dock.panel, &QDockWidget::visibilityChanged, this, [this](bool vsbl) {
+        m_isShown = vsbl;
+        emit isShownChanged(vsbl);
     });
+
+    m_eventsWatcher = new EventsWatcher(this);
+    m_dock.panel->installEventFilter(m_eventsWatcher);
+    connect(m_eventsWatcher, &EventsWatcher::eventReceived, this, &DockPanel::onWidgetEvent);
 }
 
 DockPanel::~DockPanel()
@@ -57,6 +66,7 @@ void DockPanel::onComponentCompleted()
     updateStyle();
 
     m_preferedWidth = width();
+    m_isShown = panel()->isVisible();
 
     if (minimumWidth() == 0) {
         panel()->setMinimumWidth(width());
@@ -85,6 +95,7 @@ void DockPanel::setTitle(QString title)
     }
 
     m_title = title;
+    panel()->setWindowTitle(m_title);
     emit titleChanged(m_title);
 }
 
@@ -159,6 +170,11 @@ bool DockPanel::closable() const
     return featureEnabled(QDockWidget::DockWidgetClosable);
 }
 
+bool DockPanel::isShown() const
+{
+    return m_isShown;
+}
+
 bool DockPanel::visible() const
 {
     return m_dock.panel ? m_dock.panel->isVisible() : false;
@@ -173,6 +189,15 @@ void DockPanel::setClosable(bool closable)
     setFeature(QDockWidget::DockWidgetClosable, closable);
 
     emit closableChanged(closable);
+}
+
+void DockPanel::onWidgetEvent(QEvent* event)
+{
+    if (QEvent::Close == event->type()) {
+        emit closed();
+    } else {
+        DockView::onWidgetEvent(event);
+    }
 }
 
 void DockPanel::setFeature(QDockWidget::DockWidgetFeature feature, bool value)

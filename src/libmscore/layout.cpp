@@ -1658,6 +1658,7 @@ static void distributeStaves(Page* page)
     int ngaps { 0 };
     qreal prevYBottom  { page->tm() };
     qreal yBottom      { 0.0 };
+    qreal spacerOffset { 0.0 };
     bool vbox          { false };
     Spacer* nextSpacer { nullptr };
     bool transferNormalBracket { false };
@@ -1697,33 +1698,8 @@ static void distributeStaves(Page* page)
                     continue;
                 }
 
-                Spacer* activeSpacer { nextSpacer };
-                nextSpacer = nullptr;
-                for (MeasureBase* mb : system->measures()) {
-                    Measure* m = toMeasure(mb);
-                    if (!mb->isMeasure()) {
-                        continue;
-                    }
-                    Spacer* sp = m->vspacerUp(staff->idx());
-                    if (sp) {
-                        if (!activeSpacer || ((activeSpacer->spacerType() == SpacerType::UP) && (sp->gap() > activeSpacer->gap()))) {
-                            activeSpacer = sp;
-                        }
-                        continue;
-                    }
-                    sp = m->vspacerDown(staff->idx());
-                    if (sp) {
-                        if (sp->spacerType() == SpacerType::FIXED) {
-                            nextSpacer = sp;
-                        } else {
-                            if (!nextSpacer || (sp->gap() > nextSpacer->gap())) {
-                                nextSpacer = sp;
-                            }
-                        }
-                    }
-                }
-
-                VerticalGapData* vgd = new VerticalGapData(!ngaps++, system, staff, sysStaff, activeSpacer, prevYBottom);
+                VerticalGapData* vgd = new VerticalGapData(!ngaps++, system, staff, sysStaff, nextSpacer, prevYBottom);
+                nextSpacer = system->downSpacer(staff->idx());
 
                 if (newSystem) {
                     vgd->addSpaceBetweenSections();
@@ -1747,8 +1723,9 @@ static void distributeStaves(Page* page)
                     vbox = false;
                 }
 
-                prevYBottom = system->y() + sysStaff->y() + sysStaff->bbox().height();
-                yBottom     = system->y() + sysStaff->y() + sysStaff->skyline().south().max();
+                prevYBottom  = system->y() + sysStaff->y() + sysStaff->bbox().height();
+                yBottom      = system->y() + sysStaff->y() + sysStaff->skyline().south().max();
+                spacerOffset = sysStaff->skyline().south().max() - sysStaff->bbox().height();
                 vgdl.append(vgd);
             }
             transferNormalBracket = endNormalBracket >= 0;
@@ -1758,8 +1735,8 @@ static void distributeStaves(Page* page)
     --ngaps;
 
     qreal spaceLeft { page->height() - page->bm() - score->styleP(Sid::staffLowerBorder) - yBottom };
-    if (nextSpacer && (nextSpacer->spacerType() == SpacerType::DOWN)) {
-        spaceLeft -= nextSpacer->gap();
+    if (nextSpacer) {
+        spaceLeft -= qMax(0.0, nextSpacer->gap() - spacerOffset - score->styleP(Sid::staffLowerBorder));
     }
     if (spaceLeft <= 0.0) {
         return;
@@ -5458,17 +5435,19 @@ LayoutContext::~LayoutContext()
 //      defines a gap ABOVE the staff.
 //---------------------------------------------------------
 
-VerticalGapData::VerticalGapData(bool first, System* sys, Staff* st, SysStaff* sst, const Spacer* spacer, qreal y)
+VerticalGapData::VerticalGapData(bool first, System* sys, Staff* st, SysStaff* sst, Spacer* nextSpacer, qreal y)
     : _fixedHeight(first), system(sys), sysStaff(sst), staff(st)
 {
     if (_fixedHeight) {
         _normalisedSpacing = system->score()->styleP(Sid::staffUpperBorder);
         _maxActualSpacing = _normalisedSpacing;
     } else {
-        _normalisedSpacing = system->y() + (sysStaff ? sysStaff->y() : 0.0) - y;
+        _normalisedSpacing = system->y() + (sysStaff ? sysStaff->bbox().y() : 0.0) - y;
         _maxActualSpacing = system->score()->styleP(Sid::maxStaffSpread);
+
+        Spacer* spacer { staff ? system->upSpacer(staff->idx(), nextSpacer) : nullptr };
+
         if (spacer) {
-            _hasSpacer = true;
             _fixedSpacer = spacer->spacerType() == SpacerType::FIXED;
             _normalisedSpacing = qMax(_normalisedSpacing, spacer->gap());
             if (_fixedSpacer) {

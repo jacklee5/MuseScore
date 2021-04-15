@@ -24,19 +24,21 @@
 #include "modularity/ioc.h"
 #include "iglobalconfiguration.h"
 #include "ui/iuiconfiguration.h"
-#include "ui/itheme.h"
-#include "notation/inotationconfiguration.h"
 
 namespace mu::palette {
 class PaletteConfiguration : public IPaletteConfiguration
 {
-    INJECT(palette, ui::ITheme, theme)
+    INJECT(palette, ui::IUiConfiguration, uiConfiguration)
     INJECT(palette, framework::IGlobalConfiguration, globalConfiguration)
-    INJECT(palette, notation::INotationConfiguration, notationConfiguration)
 
 public:
+    void init();
+
     double paletteScaling() const override;
+    void setPaletteScaling(double scale) override;
+
     bool isSinglePalette() const override;
+    void setIsSinglePalette(bool isSingle) override;
 
     QColor elementsBackgroundColor() const override;
     QColor elementsColor() const override;
@@ -57,6 +59,8 @@ public:
     void setPaletteCellConfig(const QString& cellId, const PaletteCellConfig& config) override;
 
 private:
+    QColor themeColor(ui::ThemeStyleKey key) const;
+
     mutable QHash<QString, ValCh<PaletteConfig> > m_paletteConfigs;
     mutable QHash<QString, ValCh<PaletteCellConfig> > m_paletteCellsConfigs;
 };

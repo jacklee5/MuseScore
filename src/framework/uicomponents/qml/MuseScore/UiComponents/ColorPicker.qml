@@ -1,5 +1,6 @@
-import QtQuick 2.9
+import QtQuick 2.15
 import QtQuick.Dialogs 1.2
+
 import MuseScore.Ui 1.0
 
 Rectangle {
@@ -9,21 +10,15 @@ Rectangle {
 
     signal newColorSelected(var newColor)
 
-    height: 26
+    height: 30
     width: parent.width
-    radius: 2
+
+    opacity: enabled ? 1 : ui.theme.itemOpacityDisabled
+
+    radius: 3
     color: "#000000"
 
-    Rectangle {
-        id: backgroundRect
-
-        anchors.fill: parent
-        anchors.margins: -2
-
-        radius: 2
-        color: "transparent"
-        border.width: 1
-    }
+    border.width: 1
 
     StyledIconLabel {
         anchors.fill: parent
@@ -34,7 +29,7 @@ Rectangle {
     }
 
     MouseArea {
-        id: cliickableArea
+        id: clickableArea
 
         anchors.fill: parent
 
@@ -59,23 +54,23 @@ Rectangle {
     states: [
         State {
             name: "NORMAL"
-            when: !cliickableArea.containsMouse && !colorDialog.visible
+            when: !clickableArea.containsMouse && !colorDialog.visible
 
-            PropertyChanges { target: backgroundRect; border.color: ui.theme.buttonColor }
+            PropertyChanges { target: root; border.color: ui.theme.buttonColor }
         },
 
         State {
             name: "HOVERED"
-            when: cliickableArea.containsMouse && !cliickableArea.pressed && !colorDialog.visible
+            when: clickableArea.containsMouse && !clickableArea.pressed && !colorDialog.visible
 
-            PropertyChanges { target: backgroundRect; border.color: ui.theme.accentColor }
+            PropertyChanges { target: root; border.color: ui.theme.accentColor }
         },
 
         State {
             name: "PRESSED"
-            when: cliickableArea.pressed || colorDialog.visible
+            when: clickableArea.pressed || colorDialog.visible
 
-            PropertyChanges { target: backgroundRect; border.color: ui.theme.fontPrimaryColor }
+            PropertyChanges { target: root; border.color: ui.theme.fontPrimaryColor }
         }
     ]
 }

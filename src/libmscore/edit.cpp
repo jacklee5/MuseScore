@@ -1681,7 +1681,11 @@ void Score::cmdAddTie(bool addToChord)
     for (Note* note : noteList) {
         if (note->tieFor()) {
             qDebug("cmdAddTie: note %p has already tie? noteFor: %p", note, note->tieFor());
-            continue;
+            if (addToChord) {
+                continue;
+            } else {
+                undoRemoveElement(note->tieFor());
+            }
         }
 
         if (noteEntryMode()) {
@@ -4584,7 +4588,6 @@ void Score::updateInstrumentChangeTranspositions(KeySigEvent& key, Staff* staff,
                 Measure* m = tick2measure(Fraction::fromTicks(nextTick));
                 Segment* s = m->tick2segment(Fraction::fromTicks(nextTick), SegmentType::KeySig);
                 int track = staff->idx() * VOICES;
-                KeySig* keySig = toKeySig(s->element(track));
                 if (key.isAtonal() && !e.isAtonal()) {
                     e.setMode(KeyMode::NONE);
                     e.setKey(Key::C);
@@ -4597,7 +4600,10 @@ void Score::updateInstrumentChangeTranspositions(KeySigEvent& key, Staff* staff,
                     nkey = transposeKey(nkey, previousTranspose);
                     e.setKey(nkey);
                 }
-                undo(new ChangeKeySig(keySig, e, keySig->showCourtesy()));
+                KeySig* keySig = toKeySig(s->element(track));
+                if (keySig) {
+                    undo(new ChangeKeySig(keySig, e, keySig->showCourtesy()));
+                }
                 nextTick = kl->nextKeyTick(nextTick);
             } else {
                 nextTick = -1;

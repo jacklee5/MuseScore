@@ -20,40 +20,36 @@
 #ifndef MU_UI_WINDOWSPLATFORMTHEME_H
 #define MU_UI_WINDOWSPLATFORMTHEME_H
 
-#include "iplatformtheme.h"
-
-#include "modularity/ioc.h"
-#include "async/asyncable.h"
-#include "iuiconfiguration.h"
+#include "internal/iplatformtheme.h"
 
 namespace mu::ui {
-class WindowsPlatformTheme : public IPlatformTheme, public async::Asyncable
+class WindowsPlatformTheme : public IPlatformTheme
 {
-    INJECT(ui, IUiConfiguration, configuration)
-
 public:
     WindowsPlatformTheme();
-    ~WindowsPlatformTheme();
 
-    void init() override;
+    void startListening() override;
+    void stopListening() override;
 
     bool isFollowSystemThemeAvailable() const override;
 
-    bool isDarkMode() const override;
-    async::Channel<bool> darkModeSwitched() const override;
+    ThemeCode themeCode() const override;
+    async::Channel<ThemeCode> themeCodeChanged() const override;
 
-    void setAppThemeDark(bool) override;
-    void styleWindow(QWidget*) override;
+    void applyPlatformStyleOnAppForTheme(ThemeCode themeCode) override;
+    void applyPlatformStyleOnWindowForTheme(QWidget* window, ThemeCode themeCode) override;
 
 private:
-    async::Channel<bool> m_darkModeSwitched;
     int m_buildNumber = 0;
+
+    async::Channel<ThemeCode> m_channel;
     std::atomic<bool> m_isListening = false;
     std::thread m_listenThread;
-    void updateListeningStatus(IUiConfiguration::ThemeType themeType);
-    void startListening();
+
     void th_listen();
-    void stopListening();
+
+    bool isSystemDarkMode() const;
+    bool isSystemHighContrast() const;
 };
 }
 

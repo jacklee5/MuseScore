@@ -298,8 +298,10 @@ set(MODULE_SRC
     style.h
     symbol.cpp
     symbol.h
+    symid.h
     sym.cpp
     sym.h
+    symnames.cpp
     synthesizerstate.cpp
     synthesizerstate.h
     system.cpp
@@ -360,12 +362,17 @@ set(MODULE_SRC
     draw/qpainterprovider.h
     draw/bufferedpaintprovider.cpp
     draw/bufferedpaintprovider.h
-    draw/drawobjectslogger.cpp
-    draw/drawobjectslogger.h
+    draw/drawlogger.cpp
+    draw/drawlogger.h
+    draw/drawjson.cpp
+    draw/drawjson.h
+    draw/drawcomp.cpp
+    draw/drawcomp.h
     )
 
 set(MODULE_INCLUDE
     ${PROJECT_SOURCE_DIR}/thirdparty/dtl
+    ${Qt5Gui_PRIVATE_INCLUDE_DIRS} # for drawbufferjson.cpp
     )
 
 set(FREETYPE_LIB )

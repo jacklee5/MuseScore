@@ -37,6 +37,9 @@ Item {
     property PaletteWorkspace paletteWorkspace
     property var modelIndex: null
 
+    property KeyNavigationSubSection keynavSubsection: null
+    property int keynavRow: 0
+
     signal toggleExpandRequested()
     signal enableEditingToggled(bool val)
     signal hideSelectedElementsRequested()
@@ -65,6 +68,11 @@ Item {
         activeFocusOnTab: false // same focus object as parent palette
         icon: paletteHeader.expanded ? IconCode.SMALL_ARROW_DOWN : IconCode.SMALL_ARROW_RIGHT
         normalStateColor: "transparent"
+
+        enabled: paletteExpandArrow.visible
+        keynav.subsection: paletteHeader.keynavSubsection
+        keynav.row: paletteHeader.keynavRow
+        keynav.column: 1
 
         onClicked: paletteHeader.toggleExpandRequested()
     }
@@ -99,8 +107,10 @@ Item {
         activeFocusOnTab: mainPalette.currentItem === paletteTree.currentTreeItem
         normalStateColor: "transparent"
 
-        KeyNavigation.backtab: mainPalette.currentItem
-        KeyNavigation.tab: focusBreaker
+        enabled: deleteButton.visible
+        keynav.subsection: paletteHeader.keynavSubsection
+        keynav.row: paletteHeader.keynavRow
+        keynav.column: 2
 
         onClicked: {
             hideSelectedElementsRequested()
@@ -115,7 +125,10 @@ Item {
 
         visible: paletteHeader.expanded || paletteHeader.hovered || paletteHeaderMenu.visible
 
-        activeFocusOnTab: parent.parent.parent === paletteTree.currentTreeItem
+        enabled: paletteHeaderMenuButton.visible
+        keynav.subsection: paletteHeader.keynavSubsection
+        keynav.row: paletteHeader.keynavRow
+        keynav.column: 3
 
         icon: IconCode.MENU_THREE_DOTS
         normalStateColor: "transparent"
@@ -141,7 +154,7 @@ Item {
         x: paletteHeaderMenuButton.x + paletteHeaderMenuButton.width
         y: paletteHeaderMenuButton.y + paletteHeaderMenuButton.height
 
-        StyledMenuItem {
+        StyledContextMenuItem {
             text: custom ? qsTrc("palette", "Hide/Delete Palette") : qsTrc("palette", "Hide Palette")
 
             onTriggered: {
@@ -149,7 +162,7 @@ Item {
             }
         }
 
-        StyledMenuItem {
+        StyledContextMenuItem {
             text: qsTrc("palette", "Insert New Palette")
 
             onTriggered: {
@@ -159,7 +172,7 @@ Item {
 
         SeparatorLine {}
 
-        StyledMenuItem {
+        StyledContextMenuItem {
             text: qsTrc("palette", "Enable Editing")
             checkable: true
             checked: paletteHeader.editingEnabled
@@ -171,7 +184,7 @@ Item {
 
         SeparatorLine {}
 
-        StyledMenuItem {
+        StyledContextMenuItem {
             text: qsTrc("palette", "Reset Palette")
 
             onTriggered: {
@@ -179,7 +192,7 @@ Item {
             }
         }
 
-        StyledMenuItem {
+        StyledContextMenuItem {
             text: qsTrc("palette", "Save Palette…")
 
             onTriggered: {
@@ -187,7 +200,7 @@ Item {
             }
         }
 
-        StyledMenuItem {
+        StyledContextMenuItem {
             text: qsTrc("palette", "Load Palette…")
 
             onTriggered: {
@@ -197,7 +210,7 @@ Item {
 
         SeparatorLine {}
 
-        StyledMenuItem {
+        StyledContextMenuItem {
             text: qsTrc("palette", "Palette Properties…")
             enabled: paletteHeader.editingEnabled
 

@@ -34,12 +34,28 @@ TemplatePaintView::TemplatePaintView(QQuickItem* parent)
 
 void TemplatePaintView::load(const QString& templatePath)
 {
+    if (templatePath.isEmpty()) {
+        return;
+    }
+
     if (m_templatePath == templatePath) {
         return;
     }
 
     m_templatePath = templatePath;
     load();
+}
+
+QString TemplatePaintView::zoomInSequence() const
+{
+    shortcuts::Shortcut shortcut = shortcutsRegister()->shortcut("zoomin");
+    return QString::fromStdString(shortcut.sequence);
+}
+
+QString TemplatePaintView::zoomOutSequence() const
+{
+    shortcuts::Shortcut shortcut = shortcutsRegister()->shortcut("zoomout");
+    return QString::fromStdString(shortcut.sequence);
 }
 
 void TemplatePaintView::load()
@@ -86,14 +102,4 @@ qreal TemplatePaintView::resolveDefaultScaling() const
 void TemplatePaintView::onViewSizeChanged()
 {
     adjustCanvas();
-}
-
-void TemplatePaintView::zoomIn()
-{
-    handleAction("zoomin");
-}
-
-void TemplatePaintView::zoomOut()
-{
-    handleAction("zoomout");
 }

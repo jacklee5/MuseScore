@@ -64,7 +64,8 @@ public:
     Q_INVOKABLE void scrollHorizontal(qreal position);
     Q_INVOKABLE void scrollVertical(qreal position);
 
-    Q_INVOKABLE void handleAction(const QString& actionCode);
+    Q_INVOKABLE void zoomIn();
+    Q_INVOKABLE void zoomOut();
 
     qreal width() const override;
     qreal height() const override;
@@ -82,6 +83,7 @@ public:
     void showShadowNote(const QPointF& pos) override;
 
     void showContextMenu(const ElementType& elementType, const QPoint& pos) override;
+    Q_INVOKABLE void handleAction(const QString& actionCode);
 
     INotationInteractionPtr notationInteraction() const override;
     INotationPlaybackPtr notationPlayback() const override;
@@ -107,7 +109,6 @@ signals:
 protected:
     void setNotation(INotationPtr notation);
     void setReadonly(bool readonly);
-    void setBackgroundColor(const QColor& color);
 
     void moveCanvasToCenter();
     void moveCanvasToPosition(const QPoint& logicPos);
@@ -172,7 +173,11 @@ private:
     const Page* pointToPage(const QPointF& point) const;
     QPointF alignToCurrentPageBorder(const QRectF& showRect, const QPointF& pos) const;
 
-    QColor m_backgroundColor;
+    void paintBackground(const QRect& rect, mu::draw::Painter* painter);
+
+    QPoint canvasCenter() const;
+    std::pair<int, int> constraintCanvas(int dx, int dy) const;
+
     notation::INotationPtr m_notation;
     QTransform m_matrix;
     std::unique_ptr<NotationViewInputController> m_inputController;

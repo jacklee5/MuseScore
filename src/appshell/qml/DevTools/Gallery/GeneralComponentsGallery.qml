@@ -9,7 +9,7 @@ import MuseScore.Ui 1.0
 Rectangle {
     id: root
 
-    color: ui.theme.backgroundPrimaryColor
+    color: ui.theme.backgroundSecondaryColor
 
     Flickable {
         id: flickableWrapper
@@ -33,6 +33,7 @@ Rectangle {
                     { textRole: "StyledComboBox", componentRole: comboboxSample },
                     { textRole: "StyledPopup", componentRole: popupSample },
                     { textRole: "StyledPopupView", componentRole: styledPopupViewComponent },
+                    { textRole: "StyledMenu", componentRole: styledMenuComponent },
                     { textRole: "CheckBox", componentRole: checkBoxSample },
                     { textRole: "ColorPicker", componentRole: colorPickerSample },
                     { textRole: "ExpandableBlank", componentRole: expandableBlankSample },
@@ -45,12 +46,14 @@ Rectangle {
                     { textRole: "RoundedRectangle (which allows to round the particular corners)", componentRole: roundedRectangleSample },
                     { textRole: "TextInputField", componentRole: textInputFieldSample },
                     { textRole: "SearchField", componentRole: searchFieldSample },
+                    { textRole: "FilePicker", componentRole: filePickerSample },
                     { textRole: "TabPanel", componentRole: tabPanelSample },
                     { textRole: "GradientTabButton", componentRole: gradientTabButtonsSample },
                     { textRole: "GridView", componentRole: gridViewVertical },
                     { textRole: "StyledSlider", componentRole: slidersSample },
                     { textRole: "NumberInputField", componentRole: numberInputFieldSample },
-                    { textRole: "TimeInputField", componentRole: timeInputFieldSample }
+                    { textRole: "TimeInputField", componentRole: timeInputFieldSample },
+                    { textRole: "ValueList", componentRole: valueListSample }
                 ]
 
                 delegate: Column {
@@ -247,6 +250,55 @@ Rectangle {
                             text: "Accent button 2"
                             accentButton: true
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: styledMenuComponent
+
+        Row {
+            spacing: 12
+
+            FlatButton {
+                text: "Show Menu"
+
+                onClicked: {
+                    menu.toggleOpened()
+                }
+
+                StyledMenu {
+                    id: menu
+
+                    model: {
+                        var _subitems = [
+                                    {code: "2", icon: IconCode.PAGE, title: "first action", enabled: true},
+                                    {code: "3", icon: IconCode.PAGE, title: "with subitems", enabled: true, subitems: [
+                                            {code: "4", title: "first action", enabled: true, selectable: true},
+                                            {code: "5", title: "second action", enabled: true, selectable: true, selected: true},
+                                            {code: "6", title: "third action", enabled: true, selectable: true},
+                                            {},
+                                            {code: "7", title: "clear"}
+                                        ]}
+                                ]
+
+                        var items = [
+                                    {code: "0", icon: IconCode.PAGE, title: "enabled action", enabled: true},
+                                    {code: "1", icon: IconCode.AMBITUS, title: "with subitems", enabled: true, shortcut: "Ctrl+A", subitems: _subitems },
+                                    {},
+                                    {code: "5", title: "with shortcut", enabled: true, shortcut: "Ctrl+Shift+G"},
+                                    {code: "6", icon: IconCode.PAGE, title: "disabled action", enabled: false},
+                                    {code: "7", icon: IconCode.CLEF_BASS, title: "checkable action", enabled: true, checkable: true, checked: true}
+                                ]
+
+                        return items
+                    }
+
+                    onHandleAction: {
+                        console.log("selected " + actionCode + " index " + actionIndex)
+                        menu.close()
                     }
                 }
             }
@@ -612,6 +664,16 @@ Rectangle {
     }
 
     Component {
+        id: filePickerSample
+
+        FilePicker {
+            width: 220
+
+            path: "/some/test/path/foo.txt"
+        }
+    }
+
+    Component {
         id: tabPanelSample
 
         TabPanel {
@@ -842,6 +904,51 @@ Rectangle {
         TimeInputField {
             Component.onCompleted: {
                 time = new Date(2021, 1, 3, 1, 23, 44, 3)
+            }
+        }
+    }
+
+    Component {
+        id: valueListSample
+
+        ValueList {
+
+            width: 560
+            height: 226
+
+            keyRoleName: "name"
+            keyTitle: "Name"
+            valueRoleName: "age"
+            valueTitle: "Age"
+
+            model: ListModel {
+                ListElement {
+                    name: "Alex"
+                    age: 12
+                    valueType: "Int"
+                    min: 1
+                    max: 15
+                }
+                ListElement {
+                    name: "Tony"
+                    age: 15
+                    valueType: "Int"
+                }
+                ListElement {
+                    name: "Fred"
+                    age: 10
+                    valueType: "Int"
+                }
+                ListElement {
+                    name: "Emma"
+                    age: 5
+                    valueType: "Int"
+                }
+                ListElement {
+                    name: "Anna"
+                    age: 11
+                    valueType: "Int"
+                }
             }
         }
     }

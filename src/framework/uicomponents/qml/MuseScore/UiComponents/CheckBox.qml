@@ -9,6 +9,7 @@ FocusableItem {
     property bool isIndeterminate: false
 
     property alias text: label.text
+    property alias font: label.font
     property alias wrapMode: label.wrapMode
 
     signal clicked
@@ -53,6 +54,8 @@ FocusableItem {
             Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
 
             horizontalAlignment: Text.AlignLeft
+            wrapMode: Text.WordWrap
+            maximumLineCount: 2
 
             visible: Boolean(text)
         }

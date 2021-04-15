@@ -14,7 +14,35 @@ RadioDelegate {
 
     property int orientation: Qt.Vertical
 
+    property var normalStateFont: ui.theme.tabFont
+    property var selectedStateFont: ui.theme.tabBoldFont
+
+    property alias keynav: keynavCtrl
+
     height: 48
+
+    spacing: 30
+    leftPadding: 0
+    rightPadding: 0
+
+    onToggled: {
+        if (!keynavCtrl.active) {
+            keynavCtrl.forceActive()
+        }
+    }
+
+    KeyNavigationControl {
+        id: keynavCtrl
+        name: root.objectName
+
+        onActiveChanged: {
+            if (keynavCtrl.active) {
+                root.forceActiveFocus()
+            }
+        }
+
+        onTriggered: root.toggled()
+    }
 
     background: Item {
         anchors.fill: parent
@@ -25,13 +53,16 @@ RadioDelegate {
 
             color: ui.theme.backgroundPrimaryColor
             opacity: ui.theme.buttonOpacityNormal
-            border.width: 0
+
+            border.color: ui.theme.focusColor
+            border.width: keynavCtrl.active ? 2 : 0
             radius: 2
         }
 
         Item {
             id: backgroundGradientRect
             anchors.fill: parent
+            anchors.margins: 2 //! NOTE margin needed to show focus border
 
             property bool isVertical: orientation === Qt.Vertical
             visible: false
@@ -93,35 +124,29 @@ RadioDelegate {
 
     contentItem: Row {
         anchors.left: parent.left
-        anchors.leftMargin: !Boolean(iconComponent) ? 8 : 0
         anchors.verticalCenter: parent.verticalCenter
 
-        spacing: 0
+        spacing: root.spacing
+        leftPadding: root.leftPadding
+        rightPadding: root.rightPadding
 
-        Item {
-            width: 76
-            height: parent.height
+        Loader {
+            anchors.verticalCenter: parent.verticalCenter
 
+            sourceComponent: iconComponent
             visible: Boolean(iconComponent)
-
-            Loader {
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.verticalCenter: parent.verticalCenter
-
-                sourceComponent: iconComponent
-            }
         }
 
         StyledTextLabel {
             id: textLabel
 
             anchors.verticalCenter: parent.verticalCenter
-            width: implicitWidth + 8
+            width: implicitWidth
 
             visible: Boolean(title)
 
             horizontalAlignment: Text.AlignLeft
-            font: ui.theme.tabFont
+            font: normalStateFont
             text: title
         }
     }
@@ -156,18 +181,13 @@ RadioDelegate {
             when: root.checked
 
             PropertyChanges {
-                target: backgroundRect
-                visible: false
-            }
-
-            PropertyChanges {
                 target: backgroundGradientRect
                 visible: true
             }
 
             PropertyChanges {
                 target: textLabel
-                font: ui.theme.tabBoldFont
+                font: selectedStateFont
             }
         }
     ]

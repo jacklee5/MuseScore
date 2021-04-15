@@ -25,20 +25,28 @@
 
 using namespace mu::palette;
 using namespace mu::framework;
+using namespace mu::ui;
 
 static const std::string MODULE_NAME("palette");
 static const Settings::Key PALETTE_SCALE(MODULE_NAME, "application/paletteScale");
 static const Settings::Key PALETTE_USE_SINGLE(MODULE_NAME, "application/useSinglePalette");
 
+void PaletteConfiguration::init()
+{
+    settings()->setDefaultValue(PALETTE_SCALE, Val(1.0));
+    settings()->setCanBeMannualyEdited(PALETTE_SCALE, true);
+    settings()->setDefaultValue(PALETTE_USE_SINGLE, Val(false));
+    settings()->setCanBeMannualyEdited(PALETTE_USE_SINGLE, true);
+}
+
 double PaletteConfiguration::paletteScaling() const
 {
-    double pref = 1.0;
-    Val val = settings()->value(PALETTE_SCALE);
-    if (!val.isNull()) {
-        pref = val.toDouble();
-    }
+    return settings()->value(PALETTE_SCALE).toDouble();
+}
 
-    return pref;
+void PaletteConfiguration::setPaletteScaling(double scale)
+{
+    settings()->setValue(PALETTE_SCALE, Val(scale));
 }
 
 bool PaletteConfiguration::isSinglePalette() const
@@ -46,29 +54,39 @@ bool PaletteConfiguration::isSinglePalette() const
     return settings()->value(PALETTE_USE_SINGLE).toBool();
 }
 
+void PaletteConfiguration::setIsSinglePalette(bool isSingle)
+{
+    settings()->setValue(PALETTE_USE_SINGLE, Val(isSingle));
+}
+
 QColor PaletteConfiguration::elementsBackgroundColor() const
 {
-    return theme()->backgroundPrimaryColor();
+    return themeColor(BACKGROUND_PRIMARY_COLOR);
 }
 
 QColor PaletteConfiguration::elementsColor() const
 {
-    return theme()->fontPrimaryColor();
+    return themeColor(FONT_PRIMARY_COLOR);
 }
 
 QColor PaletteConfiguration::gridColor() const
 {
-    return theme()->strokeColor();
+    return themeColor(STROKE_COLOR);
 }
 
 QColor PaletteConfiguration::accentColor() const
 {
-    return theme()->accentColor();
+    return themeColor(ACCENT_COLOR);
+}
+
+QColor PaletteConfiguration::themeColor(ThemeStyleKey key) const
+{
+    return uiConfiguration()->currentTheme().values[key].toString();
 }
 
 mu::async::Notification PaletteConfiguration::colorsChanged() const
 {
-    return theme()->themeChanged();
+    return uiConfiguration()->currentThemeChanged();
 }
 
 mu::io::path PaletteConfiguration::keySignaturesDirPath() const

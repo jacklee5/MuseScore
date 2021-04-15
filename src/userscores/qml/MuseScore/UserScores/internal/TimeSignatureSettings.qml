@@ -22,6 +22,7 @@ FlatButton {
 
         numerator: root.model.musicSymbolCodes(root.model.timeSignature.numerator)
         denominator: root.model.musicSymbolCodes(root.model.timeSignature.denominator)
+        type: root.model.timeSignatureType
     }
 
     onClicked: {
@@ -65,6 +66,8 @@ FlatButton {
 
                 ButtonGroup.group: radioButtonList.radioButtonGroup
                 width: parent.width
+
+                spacing: 30
 
                 contentComponent: modelData["comp"]
                 checked: (root.model.timeSignatureType === modelData["valueRole"])

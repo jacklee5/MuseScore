@@ -23,7 +23,7 @@
 #include "log.h"
 
 using namespace mu::appshell;
-using namespace mu::uicomponents;
+using namespace mu::ui;
 using namespace mu::notation;
 using namespace mu::workspace;
 using namespace mu::actions;
@@ -37,275 +37,184 @@ void AppMenuModel::load()
 {
     TRACEFUNC;
 
-    m_items.clear();
+    clear();
 
-    m_items << fileItem()
-            << editItem()
-            << viewItem()
-            << addItem()
-            << formatItem()
-            << toolsItem()
-            << helpItem();
+    appendItem(fileItem());
+    appendItem(editItem());
+    appendItem(viewItem());
+    appendItem(addItem());
+    appendItem(formatItem());
+    appendItem(toolsItem());
+    appendItem(helpItem());
 
+    listenActionsStateChanges();
     setupConnections();
 
+    emit itemsChanged();
+}
+
+void AppMenuModel::onActionsStateChanges(const actions::ActionCodeList& codes)
+{
+    AbstractMenuModel::onActionsStateChanges(codes);
     emit itemsChanged();
 }
 
 void AppMenuModel::handleAction(const QString& actionCodeStr, int actionIndex)
 {
     ActionCode actionCode = codeFromQString(actionCodeStr);
-    MenuItem menuItem = actionIndex == -1 ? item(actionCode) : itemByIndex(actionCode, actionIndex);
+    MenuItem menuItem = actionIndex == -1 ? findItem(actionCode) : findItemByIndex(actionCode, actionIndex);
 
     actionsDispatcher()->dispatch(actionCode, menuItem.args);
 }
 
-QVariantList AppMenuModel::items()
-{
-    QVariantList menuItems;
-
-    for (const MenuItem& menuItem: m_items) {
-        menuItems << menuItem.toMap();
-    }
-
-    return menuItems;
-}
-
-IMasterNotationPtr AppMenuModel::currentMasterNotation() const
-{
-    return globalContext()->currentMasterNotation();
-}
-
-INotationPtr AppMenuModel::currentNotation() const
-{
-    return currentMasterNotation() ? currentMasterNotation()->notation() : nullptr;
-}
-
-INotationInteractionPtr AppMenuModel::notationInteraction() const
-{
-    return currentNotation() ? currentNotation()->interaction() : nullptr;
-}
-
-INotationSelectionPtr AppMenuModel::notationSelection() const
-{
-    return notationInteraction() ? notationInteraction()->selection() : nullptr;
-}
-
 void AppMenuModel::setupConnections()
 {
-    globalContext()->currentMasterNotationChanged().onNotify(this, [this]() {
-        load();
-
-        currentMasterNotation()->notation()->notationChanged().onNotify(this, [this]() {
-            load();
-        });
-
-        currentMasterNotation()->notation()->interaction()->selectionChanged().onNotify(this, [this]() {
-            load();
-        });
-    });
-
     userScoresService()->recentScoreList().ch.onReceive(this, [this](const MetaList&) {
-        load();
+        MenuItem& recentScoreListItem = findMenu("file-open");
+        recentScoreListItem.subitems = recentScores();
+        emit itemsChanged();
     });
 
-    paletteController()->isMasterPaletteOpened().ch.onReceive(this, [this](bool) {
-        load();
-    });
-
-    notationPageState()->panelVisibleChanged().onReceive(this, [this](PanelType) {
-        load();
-    });
-
-    controller()->isFullScreen().ch.onReceive(this, [this](bool) {
-        load();
-    });
-
-    interactive()->currentUri().ch.onReceive(this, [this](const Uri&) {
-        load();
+    workspacesManager()->currentWorkspace().ch.onReceive(this, [this](const IWorkspacePtr&) {
+        MenuItem& workspacesItem = findMenu("select-workspace");
+        workspacesItem.subitems = workspacesItems();
+        emit itemsChanged();
     });
 }
 
-MenuItem& AppMenuModel::item(const ActionCode& actionCode)
+MenuItem AppMenuModel::fileItem() const
 {
-    for (MenuItem& item : m_items) {
-        if (item.code == actionCode) {
-            return item;
-        }
-    }
+    MenuItemList recentScoresList = recentScores();
 
-    static MenuItem null;
-    return null;
-}
-
-MenuItem& AppMenuModel::itemByIndex(const ActionCode& menuActionCode, int actionIndex)
-{
-    MenuItem& menuItem = menu(m_items, menuActionCode);
-    MenuItemList& subitems = menuItem.subitems;
-    for (int i = 0; i < subitems.size(); ++i) {
-        if (i == actionIndex) {
-            return subitems[i];
-        }
-    }
-
-    static MenuItem null;
-    return null;
-}
-
-MenuItem& AppMenuModel::menu(MenuItemList& items, const ActionCode& subitemsActionCode)
-{
-    for (MenuItem& item : items) {
-        if (item.subitems.isEmpty()) {
-            continue;
-        }
-
-        if (item.code == subitemsActionCode) {
-            return item;
-        }
-
-        MenuItem& menuItem = menu(item.subitems, subitemsActionCode);
-        if (menuItem.isValid()) {
-            return menuItem;
-        }
-    }
-
-    static MenuItem null;
-    return null;
-}
-
-MenuItem AppMenuModel::fileItem()
-{
     MenuItemList fileItems {
         makeAction("file-new"),
         makeAction("file-open"),
-        makeMenu(trc("appshell", "Open &Recent"), recentScores(), true, "file-open"),
+        makeMenu(qtrc("appshell", "Open &Recent"), recentScoresList, !recentScoresList.empty(), "file-open"),
         makeSeparator(),
-        makeAction("file-close", scoreOpened()),
-        makeAction("file-save", needSaveScore()),
-        makeAction("file-save-as", scoreOpened()),
-        makeAction("file-save-a-copy", scoreOpened()),
-        makeAction("file-save-selection", scoreOpened()),
-        makeAction("file-save-online", scoreOpened()), // need implement
+        makeAction("file-close"),
+        makeAction("file-save"),
+        makeAction("file-save-as"),
+        makeAction("file-save-a-copy"),
+        makeAction("file-save-selection"),
+        makeAction("file-save-online"), // need implement
         makeSeparator(),
-        makeAction("file-import-pdf", scoreOpened()),
-        makeAction("file-export", scoreOpened()), // need implement
+        makeAction("file-import-pdf"),
+        makeAction("file-export"), // need implement
         makeSeparator(),
-        makeAction("edit-info", scoreOpened()),
-        makeAction("parts", scoreOpened()),
+        makeAction("edit-info"),
+        makeAction("parts"),
         makeSeparator(),
-        makeAction("print", scoreOpened()), // need implement
+        makeAction("print"), // need implement
         makeSeparator(),
         makeAction("quit")
     };
 
-    return makeMenu(trc("appshell", "&File"), fileItems);
+    return makeMenu(qtrc("appshell", "&File"), fileItems);
 }
 
-MenuItem AppMenuModel::editItem()
+MenuItem AppMenuModel::editItem() const
 {
     MenuItemList editItems {
-        makeAction("undo", canUndo()),
-        makeAction("redo", canRedo()),
+        makeAction("undo"),
+        makeAction("redo"),
         makeSeparator(),
-        makeAction("cut", selectedElementOnScore()),
-        makeAction("copy", selectedElementOnScore()),
-        makeAction("paste", selectedElementOnScore()),
-        makeAction("paste-half", selectedElementOnScore()),
-        makeAction("paste-double", selectedElementOnScore()),
-        makeAction("paste-special", selectedElementOnScore()),
-        makeAction("swap", selectedElementOnScore()),
-        makeAction("delete", selectedElementOnScore()),
+        makeAction("cut"),
+        makeAction("copy"),
+        makeAction("paste"),
+        makeAction("paste-half"),
+        makeAction("paste-double"),
+        makeAction("swap"),
+        makeAction("delete"),
         makeSeparator(),
-        makeAction("select-all", scoreOpened()),
-        makeAction("select-similar", selectedElementOnScore()),
-        makeAction("find", scoreOpened()),
+        makeAction("select-all"),
+        makeAction("select-section"),
+        makeAction("find"),
         makeSeparator(),
-        makeAction("preference-dialog") // need implement
+        makeAction("preference-dialog")
     };
 
-    return makeMenu(trc("appshell", "&Edit"), editItems);
+    return makeMenu(qtrc("appshell", "&Edit"), editItems);
 }
 
-MenuItem AppMenuModel::viewItem()
+MenuItem AppMenuModel::viewItem() const
 {
     MenuItemList viewItems {
-        makeAction("toggle-palette", isNotationPage(), notationPageState()->isPanelVisible(PanelType::Palette)),
-        makeAction("toggle-instruments", isNotationPage(), notationPageState()->isPanelVisible(PanelType::Instruments)),
-        makeAction("masterpalette", isNotationPage(), paletteController()->isMasterPaletteOpened().val),
-        makeAction("inspector", isNotationPage(), notationPageState()->isPanelVisible(PanelType::Inspector)),
-        makeAction("toggle-playpanel", isNotationPage()), // need implement
-        makeAction("toggle-navigator", isNotationPage(), notationPageState()->isPanelVisible(PanelType::NotationNavigator)),
-        makeAction("toggle-timeline", isNotationPage()), // need implement
-        makeAction("toggle-mixer", isNotationPage()), // need implement
-        makeAction("synth-control", isNotationPage()), // need implement
-        makeAction("toggle-selection-window", isNotationPage()), // need implement
-        makeAction("toggle-piano", isNotationPage()), // need implement
-        makeAction("toggle-scorecmp-tool", isNotationPage()), // need implement
+        makeAction("toggle-palette"),
+        makeAction("toggle-instruments"),
+        makeAction("masterpalette"),
+        makeAction("inspector"),
+        makeAction("toggle-navigator"),
+        makeAction("toggle-timeline"), // need implement
+        makeAction("toggle-mixer"), // need implement
+        makeAction("synth-control"), // need implement
+        makeAction("toggle-piano"), // need implement
+        makeAction("toggle-scorecmp-tool"), // need implement
         makeSeparator(),
-        makeAction("zoomin", isNotationPage()),
-        makeAction("zoomout", isNotationPage()),
+        makeAction("zoomin"),
+        makeAction("zoomout"),
         makeSeparator(),
-        makeMenu(trc("appshell", "&Toolbars"), toolbarsItems()),
-        makeMenu(trc("appshell", "W&orkspaces"), workspacesItems(), true, "select-workspace"),
-        makeAction("toggle-statusbar", isNotationPage(), notationPageState()->isPanelVisible(PanelType::NotationStatusBar)),
+        makeMenu(qtrc("appshell", "&Toolbars"), toolbarsItems()),
+        makeMenu(qtrc("appshell", "W&orkspaces"), workspacesItems(), true, "select-workspace"),
+        makeAction("toggle-statusbar"),
         makeSeparator(),
-        makeAction("split-h", isNotationPage()), // need implement
-        makeAction("split-v", isNotationPage()), // need implement
+        makeAction("split-h"), // need implement
+        makeAction("split-v"), // need implement
         makeSeparator(),
-        makeAction("show-invisible", isNotationPage(), scoreConfig().isShowInvisibleElements),
-        makeAction("show-unprintable", isNotationPage(), scoreConfig().isShowUnprintableElements),
-        makeAction("show-frames", isNotationPage(), scoreConfig().isShowFrames),
-        makeAction("show-pageborders", isNotationPage(), scoreConfig().isShowPageMargins),
-        makeAction("mark-irregular", isNotationPage(), scoreConfig().isMarkIrregularMeasures),
+        makeAction("show-invisible"),
+        makeAction("show-unprintable"),
+        makeAction("show-frames"),
+        makeAction("show-pageborders"),
+        makeAction("show-irregular"),
         makeSeparator(),
-        makeAction("fullscreen", true, controller()->isFullScreen().val)
+        makeAction("fullscreen")
     };
 
-    return makeMenu(trc("appshell", "&View"), viewItems);
+    return makeMenu(qtrc("appshell", "&View"), viewItems);
 }
 
-MenuItem AppMenuModel::addItem()
+MenuItem AppMenuModel::addItem() const
 {
     MenuItemList addItems {
-        makeMenu(trc("appshell", "N&otes"), notesItems()),
-        makeMenu(trc("appshell", "&Intervals"), intervalsItems()),
-        makeMenu(trc("appshell", "T&uplets"), tupletsItems()),
+        makeMenu(qtrc("appshell", "N&otes"), notesItems()),
+        makeMenu(qtrc("appshell", "&Intervals"), intervalsItems()),
+        makeMenu(qtrc("appshell", "T&uplets"), tupletsItems()),
         makeSeparator(),
-        makeMenu(trc("appshell", "&Measures"), measuresItems()),
-        makeMenu(trc("appshell", "&Frames"), framesItems()),
-        makeMenu(trc("appshell", "&Text"), textItems()),
-        makeMenu(trc("appshell", "&Lines"), linesItems()),
+        makeMenu(qtrc("appshell", "&Measures"), measuresItems()),
+        makeMenu(qtrc("appshell", "&Frames"), framesItems()),
+        makeMenu(qtrc("appshell", "&Text"), textItems()),
+        makeMenu(qtrc("appshell", "&Lines"), linesItems()),
     };
 
-    return makeMenu(trc("appshell", "&Add"), addItems, scoreOpened());
+    return makeMenu(qtrc("appshell", "&Add"), addItems);
 }
 
-MenuItem AppMenuModel::formatItem()
+MenuItem AppMenuModel::formatItem() const
 {
     MenuItemList stretchItems {
-        makeAction("stretch+", selectedRangeOnScore()),
-        makeAction("stretch-", selectedRangeOnScore()),
-        makeAction("reset-stretch", selectedRangeOnScore())
+        makeAction("stretch+"),
+        makeAction("stretch-"),
+        makeAction("reset-stretch")
     };
 
     MenuItemList formatItems {
-        makeAction("edit-style", scoreOpened()),
-        makeAction("page-settings", scoreOpened()), // need implement
+        makeAction("edit-style"),
+        makeAction("page-settings"), // need implement
         makeSeparator(),
-        makeMenu(trc("appshell", "&Stretch"), stretchItems),
+        makeAction("add-remove-breaks"),
+        makeMenu(qtrc("appshell", "&Stretch"), stretchItems),
         makeSeparator(),
-        makeAction("reset-text-style-overrides", scoreOpened()),
-        makeAction("reset-beammode", !hasSelectionOnScore() || selectedRangeOnScore()),
-        makeAction("reset", hasSelectionOnScore()),
+        makeAction("reset-text-style-overrides"),
+        makeAction("reset-beammode"),
+        makeAction("reset"),
         makeSeparator(),
-        makeAction("load-style", scoreOpened()), // need implement
-        makeAction("save-style", scoreOpened()) // need implement
+        makeAction("load-style"), // need implement
+        makeAction("save-style") // need implement
     };
 
-    return makeMenu(trc("appshell", "F&ormat"), formatItems, scoreOpened());
+    return makeMenu(qtrc("appshell", "F&ormat"), formatItems);
 }
 
-MenuItem AppMenuModel::toolsItem()
+MenuItem AppMenuModel::toolsItem() const
 {
     MenuItemList voicesItems {
         makeAction("voice-x12"),
@@ -318,7 +227,7 @@ MenuItem AppMenuModel::toolsItem()
 
     MenuItemList measuresItems {
         makeAction("split-measure"),
-        makeAction("join-measures"),
+        makeAction("join-measures")
     };
 
     MenuItemList toolsItems {
@@ -327,8 +236,8 @@ MenuItem AppMenuModel::toolsItem()
         makeAction("explode"),
         makeAction("implode"),
         makeAction("realize-chord-symbols"),
-        makeMenu(trc("appshell", "&Voices"), voicesItems),
-        makeMenu(trc("appshell", "&Measures"), measuresItems),
+        makeMenu(qtrc("appshell", "&Voices"), voicesItems),
+        makeMenu(qtrc("appshell", "&Measures"), measuresItems),
         makeAction("time-delete"),
         makeSeparator(),
         makeAction("slash-fill"),
@@ -344,10 +253,10 @@ MenuItem AppMenuModel::toolsItem()
         makeAction("del-empty-measures"),
     };
 
-    return makeMenu(trc("appshell", "&Tools"), toolsItems, scoreOpened());
+    return makeMenu(qtrc("appshell", "&Tools"), toolsItems);
 }
 
-MenuItem AppMenuModel::helpItem()
+MenuItem AppMenuModel::helpItem() const
 {
     MenuItemList toursItems {
         makeAction("show-tours"), // need implement
@@ -356,7 +265,7 @@ MenuItem AppMenuModel::helpItem()
 
     MenuItemList helpItems {
         makeAction("online-handbook"),
-        makeMenu(trc("appshell", "&Tours"), toursItems),
+        makeMenu(qtrc("appshell", "&Tours"), toursItems),
         makeSeparator(),
         makeAction("about"), // need implement
         makeAction("about-qt"),
@@ -374,22 +283,19 @@ MenuItem AppMenuModel::helpItem()
               << makeSeparator()
               << makeAction("revert-factory"); // need implement
 
-    return makeMenu(trc("appshell", "&Help"), helpItems);
+    return makeMenu(qtrc("appshell", "&Help"), helpItems);
 }
 
 MenuItemList AppMenuModel::recentScores() const
 {
     MenuItemList items;
     MetaList recentScores = userScoresService()->recentScoreList().val;
-    if (recentScores.empty()) {
-        return items;
-    }
 
-    for (const Meta& meta: recentScores) {
-        MenuItem item = actionsRegister()->action("file-open");
-        item.title = !meta.title.isEmpty() ? meta.title.toStdString() : meta.fileName.toStdString();
+    for (const Meta& meta : recentScores) {
+        MenuItem item = uiactionsRegister()->action("file-open");
+        item.title = !meta.title.isEmpty() ? meta.title : meta.fileName.toQString();
         item.args = ActionData::make_arg1<io::path>(meta.filePath);
-        item.enabled = true;
+        item.state.enabled = true;
 
         items << item;
     }
@@ -403,23 +309,23 @@ MenuItemList AppMenuModel::recentScores() const
 MenuItemList AppMenuModel::notesItems() const
 {
     MenuItemList items {
-        makeAction("note-input", true, isNoteInputMode()),
+        makeAction("note-input"),
         makeSeparator(),
-        makeAction("note-c", selectedElementOnScore()),
-        makeAction("note-d", selectedElementOnScore()),
-        makeAction("note-e", selectedElementOnScore()),
-        makeAction("note-f", selectedElementOnScore()),
-        makeAction("note-g", selectedElementOnScore()),
-        makeAction("note-a", selectedElementOnScore()),
-        makeAction("note-b", selectedElementOnScore()),
+        makeAction("note-c"),
+        makeAction("note-d"),
+        makeAction("note-e"),
+        makeAction("note-f"),
+        makeAction("note-g"),
+        makeAction("note-a"),
+        makeAction("note-b"),
         makeSeparator(),
-        makeAction("chord-c", selectedElementOnScore()),
-        makeAction("chord-d", selectedElementOnScore()),
-        makeAction("chord-e", selectedElementOnScore()),
-        makeAction("chord-f", selectedElementOnScore()),
-        makeAction("chord-g", selectedElementOnScore()),
-        makeAction("chord-a", selectedElementOnScore()),
-        makeAction("chord-b", selectedElementOnScore())
+        makeAction("chord-c"),
+        makeAction("chord-d"),
+        makeAction("chord-e"),
+        makeAction("chord-f"),
+        makeAction("chord-g"),
+        makeAction("chord-a"),
+        makeAction("chord-b")
     };
 
     return items;
@@ -428,24 +334,24 @@ MenuItemList AppMenuModel::notesItems() const
 MenuItemList AppMenuModel::intervalsItems() const
 {
     MenuItemList items {
-        makeAction("interval1", selectedElementOnScore()),
-        makeAction("interval2", selectedElementOnScore()),
-        makeAction("interval3", selectedElementOnScore()),
-        makeAction("interval4", selectedElementOnScore()),
-        makeAction("interval5", selectedElementOnScore()),
-        makeAction("interval6", selectedElementOnScore()),
-        makeAction("interval7", selectedElementOnScore()),
-        makeAction("interval8", selectedElementOnScore()),
-        makeAction("interval9", selectedElementOnScore()),
+        makeAction("interval1"),
+        makeAction("interval2"),
+        makeAction("interval3"),
+        makeAction("interval4"),
+        makeAction("interval5"),
+        makeAction("interval6"),
+        makeAction("interval7"),
+        makeAction("interval8"),
+        makeAction("interval9"),
         makeSeparator(),
-        makeAction("interval-2", selectedElementOnScore()),
-        makeAction("interval-3", selectedElementOnScore()),
-        makeAction("interval-4", selectedElementOnScore()),
-        makeAction("interval-5", selectedElementOnScore()),
-        makeAction("interval-6", selectedElementOnScore()),
-        makeAction("interval-7", selectedElementOnScore()),
-        makeAction("interval-8", selectedElementOnScore()),
-        makeAction("interval-9", selectedElementOnScore())
+        makeAction("interval-2"),
+        makeAction("interval-3"),
+        makeAction("interval-4"),
+        makeAction("interval-5"),
+        makeAction("interval-6"),
+        makeAction("interval-7"),
+        makeAction("interval-8"),
+        makeAction("interval-9")
     };
 
     return items;
@@ -454,15 +360,15 @@ MenuItemList AppMenuModel::intervalsItems() const
 MenuItemList AppMenuModel::tupletsItems() const
 {
     MenuItemList items {
-        makeAction("duplet", selectedElementOnScore()),
-        makeAction("triplet", selectedElementOnScore()),
-        makeAction("quadruplet", selectedElementOnScore()),
-        makeAction("quintuplet", selectedElementOnScore()),
-        makeAction("sextuplet", selectedElementOnScore()),
-        makeAction("septuplet", selectedElementOnScore()),
-        makeAction("octuplet", selectedElementOnScore()),
-        makeAction("nonuplet", selectedElementOnScore()),
-        makeAction("tuplet-dialog", selectedElementOnScore())
+        makeAction("duplet"),
+        makeAction("triplet"),
+        makeAction("quadruplet"),
+        makeAction("quintuplet"),
+        makeAction("sextuplet"),
+        makeAction("septuplet"),
+        makeAction("octuplet"),
+        makeAction("nonuplet"),
+        makeAction("tuplet-dialog")
     };
 
     return items;
@@ -471,11 +377,11 @@ MenuItemList AppMenuModel::tupletsItems() const
 MenuItemList AppMenuModel::measuresItems() const
 {
     MenuItemList items {
-        makeAction("insert-measure", selectedElementOnScore()),
-        makeAction("insert-measures", selectedElementOnScore()),
+        makeAction("insert-measure"),
+        makeAction("insert-measures"),
         makeSeparator(),
-        makeAction("append-measure", selectedElementOnScore()),
-        makeAction("append-measures", selectedElementOnScore())
+        makeAction("append-measure"),
+        makeAction("append-measures")
     };
 
     return items;
@@ -484,13 +390,13 @@ MenuItemList AppMenuModel::measuresItems() const
 MenuItemList AppMenuModel::framesItems() const
 {
     MenuItemList items {
-        makeAction("insert-hbox", selectedElementOnScore()),
-        makeAction("insert-vbox", selectedElementOnScore()),
-        makeAction("insert-textframe", selectedElementOnScore()),
+        makeAction("insert-hbox"),
+        makeAction("insert-vbox"),
+        makeAction("insert-textframe"),
         makeSeparator(),
-        makeAction("append-hbox", selectedElementOnScore()),
-        makeAction("append-vbox", selectedElementOnScore()),
-        makeAction("append-textframe", selectedElementOnScore())
+        makeAction("append-hbox"),
+        makeAction("append-vbox"),
+        makeAction("append-textframe")
     };
 
     return items;
@@ -499,26 +405,26 @@ MenuItemList AppMenuModel::framesItems() const
 MenuItemList AppMenuModel::textItems() const
 {
     MenuItemList items {
-        makeAction("title-text", selectedElementOnScore()),
-        makeAction("subtitle-text", selectedElementOnScore()),
-        makeAction("composer-text", selectedElementOnScore()),
-        makeAction("poet-text", selectedElementOnScore()),
-        makeAction("part-text", selectedElementOnScore()),
+        makeAction("title-text"),
+        makeAction("subtitle-text"),
+        makeAction("composer-text"),
+        makeAction("poet-text"),
+        makeAction("part-text"),
         makeSeparator(),
-        makeAction("system-text", selectedElementOnScore()),
-        makeAction("staff-text", selectedElementOnScore()),
-        makeAction("expression-text", selectedElementOnScore()),
-        makeAction("rehearsalmark-text", selectedElementOnScore()),
-        makeAction("instrument-change-text", selectedElementOnScore()),
-        makeAction("fingering-text", selectedElementOnScore()),
+        makeAction("system-text"),
+        makeAction("staff-text"),
+        makeAction("expression-text"),
+        makeAction("rehearsalmark-text"),
+        makeAction("instrument-change-text"),
+        makeAction("fingering-text"),
         makeSeparator(),
-        makeAction("sticking-text", selectedElementOnScore()),
-        makeAction("chord-text", selectedElementOnScore()),
-        makeAction("roman-numeral-text", selectedElementOnScore()),
-        makeAction("nashville-number-text", selectedElementOnScore()),
-        makeAction("lyrics", selectedElementOnScore()),
-        makeAction("figured-bass", selectedElementOnScore()),
-        makeAction("tempo", selectedElementOnScore())
+        makeAction("sticking-text"),
+        makeAction("chord-text"),
+        makeAction("roman-numeral-text"),
+        makeAction("nashville-number-text"),
+        makeAction("lyrics"),
+        makeAction("figured-bass"),
+        makeAction("tempo")
     };
 
     return items;
@@ -527,12 +433,12 @@ MenuItemList AppMenuModel::textItems() const
 MenuItemList AppMenuModel::linesItems() const
 {
     MenuItemList items {
-        makeAction("add-slur", selectedElementOnScore()),
-        makeAction("add-hairpin", selectedElementOnScore()),
-        makeAction("add-hairpin-reverse", selectedElementOnScore()),
-        makeAction("add-8va", selectedElementOnScore()),
-        makeAction("add-8vb", selectedElementOnScore()),
-        makeAction("add-noteline", selectedElementOnScore()),
+        makeAction("add-slur"),
+        makeAction("add-hairpin"),
+        makeAction("add-hairpin-reverse"),
+        makeAction("add-8va"),
+        makeAction("add-8vb"),
+        makeAction("add-noteline")
     };
 
     return items;
@@ -541,10 +447,10 @@ MenuItemList AppMenuModel::linesItems() const
 MenuItemList AppMenuModel::toolbarsItems() const
 {
     MenuItemList items {
-        makeAction("toggle-transport", isNotationPage(), notationPageState()->isPanelVisible(PanelType::PlaybackToolBar)),
-        makeAction("toggle-noteinput", isNotationPage(), notationPageState()->isPanelVisible(PanelType::NoteInputBar)),
-        makeAction("toggle-notationtoolbar", isNotationPage(), notationPageState()->isPanelVisible(PanelType::NotationToolBar)),
-        makeAction("toggle-undoredo", isNotationPage(), notationPageState()->isPanelVisible(PanelType::UndoRedoToolBar))
+        makeAction("toggle-transport"),
+        makeAction("toggle-noteinput"),
+        makeAction("toggle-notationtoolbar"),
+        makeAction("toggle-undoredo")
     };
 
     return items;
@@ -566,118 +472,20 @@ MenuItemList AppMenuModel::workspacesItems() const
     });
 
     for (const IWorkspacePtr& workspace : workspaces.val) {
-        MenuItem item = actionsRegister()->action("select-workspace");
-        item.title = workspace->title();
+        MenuItem item = uiactionsRegister()->action("select-workspace");
+        item.title = QString::fromStdString(workspace->title());
         item.args = ActionData::make_arg1<std::string>(workspace->name());
 
         bool isCurrentWorkspace = workspace == currentWorkspace;
-        item.checked = isCurrentWorkspace;
-        item.checkable = true;
-        item.enabled = isNotationPage();
+        item.selectable = true;
+        item.selected = isCurrentWorkspace;
+        item.state.enabled = true;
 
         items << item;
     }
 
     items << makeSeparator()
-          << makeAction("configure-workspaces", isNotationPage());
+          << makeAction("configure-workspaces");
 
     return items;
-}
-
-MenuItem AppMenuModel::makeMenu(const std::string& title, const MenuItemList& actions, bool enabled, const ActionCode& menuActionCode)
-{
-    MenuItem item;
-    item.code = menuActionCode;
-    item.title = title;
-    item.subitems = actions;
-    item.enabled = enabled;
-    return item;
-}
-
-MenuItem AppMenuModel::makeAction(const ActionCode& actionCode, bool enabled) const
-{
-    ActionItem action = actionsRegister()->action(actionCode);
-    if (!action.isValid()) {
-        return MenuItem();
-    }
-
-    MenuItem item = action;
-    item.enabled = enabled;
-
-    shortcuts::Shortcut shortcut = shortcutsRegister()->shortcut(action.code);
-    if (shortcut.isValid()) {
-        item.shortcut = shortcut.sequence;
-    }
-
-    return item;
-}
-
-MenuItem AppMenuModel::makeAction(const ActionCode& actionCode, bool enabled, bool checked) const
-{
-    MenuItem item = makeAction(actionCode, enabled);
-    if (!item.isValid()) {
-        return item;
-    }
-
-    item.checkable = true;
-    item.checked = checked;
-
-    return item;
-}
-
-MenuItem AppMenuModel::makeSeparator() const
-{
-    MenuItem item;
-    item.title = std::string();
-    return item;
-}
-
-bool AppMenuModel::needSaveScore() const
-{
-    return currentMasterNotation() && currentMasterNotation()->needSave().val;
-}
-
-bool AppMenuModel::scoreOpened() const
-{
-    return currentNotation() != nullptr;
-}
-
-bool AppMenuModel::canUndo() const
-{
-    return currentNotation() ? currentNotation()->undoStack()->canUndo() : false;
-}
-
-bool AppMenuModel::canRedo() const
-{
-    return currentNotation() ? currentNotation()->undoStack()->canRedo() : false;
-}
-
-bool AppMenuModel::selectedElementOnScore() const
-{
-    return notationSelection() ? notationSelection()->element() != nullptr : false;
-}
-
-bool AppMenuModel::selectedRangeOnScore() const
-{
-    return notationSelection() ? notationSelection()->isRange() : false;
-}
-
-bool AppMenuModel::hasSelectionOnScore() const
-{
-    return notationSelection() ? !notationSelection()->isNone() : false;
-}
-
-bool AppMenuModel::isNoteInputMode() const
-{
-    return currentNotation() ? currentNotation()->interaction()->noteInput()->isNoteInputMode() : false;
-}
-
-bool AppMenuModel::isNotationPage() const
-{
-    return interactive()->isOpened("musescore://notation").val;
-}
-
-ScoreConfig AppMenuModel::scoreConfig() const
-{
-    return currentNotation() ? currentNotation()->interaction()->scoreConfig() : ScoreConfig();
 }

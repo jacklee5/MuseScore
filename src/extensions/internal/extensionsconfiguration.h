@@ -36,14 +36,14 @@ public:
     QUrl extensionsUpdateUrl() const override;
     QUrl extensionFileServerUrl(const QString& extensionCode) const override;
 
+    bool needCheckForUpdate() const override;
+    void setNeedCheckForUpdate(bool needCheck) override;
+
     ValCh<ExtensionsHash> extensions() const override;
     Ret setExtensions(const ExtensionsHash& extensions) const override;
 
     io::path extensionPath(const QString& extensionCode) const override;
     io::path extensionArchivePath(const QString& extensionCode) const override;
-
-    io::path extensionsSharePath() const override;
-    io::path extensionsDataPath() const override;
 
     io::paths extensionWorkspaceFiles(const QString& extensionCode) const override;
     io::paths workspacesPaths() const override;
@@ -52,6 +52,9 @@ public:
     io::paths instrumentsPaths() const override;
 
     io::paths templatesPaths() const override;
+
+    ValCh<io::path> extensionsPath() const override;
+    void setExtensionsPath(const io::path& path) override;
 
 private:
     ExtensionsHash parseExtensionConfig(const QByteArray& json) const;
@@ -63,7 +66,10 @@ private:
     io::path extensionInstrumentsPath(const QString& extensionCode) const;
     io::path extensionTemplatesPath(const QString& extensionCode) const;
 
+    io::path extensionsDataPath() const;
+
     async::Channel<ExtensionsHash> m_extensionHashChanged;
+    async::Channel<io::path> m_extensionsPathChanged;
 };
 }
 

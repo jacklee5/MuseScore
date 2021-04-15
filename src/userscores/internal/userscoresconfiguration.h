@@ -43,21 +43,36 @@ public:
     ValCh<io::paths> recentScorePaths() const override;
     void setRecentScorePaths(const io::paths& recentScorePaths) override;
 
-    io::paths templatesDirPaths() const override;
-    io::path scoresPath() const override;
+    io::path myFirstScorePath() const override;
+
+    io::paths availableTemplatesPaths() const override;
+
+    ValCh<io::path> templatesPath() const override;
+    void setTemplatesPath(const io::path& path) override;
+
+    ValCh<io::path> scoresPath() const override;
+    void setScoresPath(const io::path& path) override;
+
     io::path defaultSavingFilePath(const io::path& fileName) const override;
 
     QColor templatePreviewBackgroundColor() const override;
-    async::Channel<QColor> templatePreviewBackgroundColorChanged() const override;
+    async::Notification templatePreviewBackgroundChanged() const override;
 
     PreferredScoreCreationMode preferredScoreCreationMode() const override;
     void setPreferredScoreCreationMode(PreferredScoreCreationMode mode) override;
 
 private:
+    io::path mainTemplatesDirPath() const;
+
     io::paths actualRecentScorePaths() const;
     io::paths parsePaths(const mu::Val& value) const;
 
+    io::path userTemplatesPath() const;
+    io::path defaultTemplatesPath() const;
+
     async::Channel<io::paths> m_recentScorePathsChanged;
+    async::Channel<io::path> m_templatesPathChanged;
+    async::Channel<io::path> m_scoresPathChanged;
 };
 }
 

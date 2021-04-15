@@ -44,6 +44,14 @@ static const QString WINDOW_QSS = QString("QMainWindow { background: %1; } "
 
 static const QString STATUS_QSS = QString("QStatusBar { background: %1; border-top: 1px solid %2; } QStatusBar::item { border: 0 }");
 
+static void addMenu(QMenu* menu, QMenuBar* menuBar)
+{
+#ifdef Q_OS_MAC
+    menu->setParent(menuBar);
+#endif
+    menuBar->addMenu(menu);
+}
+
 DockWindow::DockWindow(QQuickItem* parent)
     : QQuickItem(parent), m_toolbars(this), m_pages(this)
 {
@@ -103,7 +111,7 @@ void DockWindow::onMainWindowEvent(QEvent* event)
 {
     switch (event->type()) {
     case QEvent::Paint: {
-        platformTheme()->styleWindow(m_window);
+        configuration()->applyPlatformStyle(m_window);
     } break;
     case QEvent::Resize: {
         QResizeEvent* resizeEvent = static_cast<QResizeEvent*>(event);
@@ -281,15 +289,16 @@ void DockWindow::updateStyle()
 {
     m_window->setStyleSheet(WINDOW_QSS.arg(m_color.name()).arg(m_borderColor.name()));
     m_statusbar->setStyleSheet(STATUS_QSS.arg(m_color.name()).arg(m_borderColor.name()));
-    platformTheme()->styleWindow(m_window);
+    configuration()->applyPlatformStyle(m_window);
 }
 
 void DockWindow::onMenusChanged(const QList<QMenu*>& menus)
 {
-    m_window->menuBar()->clear();
+    QMenuBar* menuBar = qMenuBar();
+    menuBar->clear();
 
     for (QMenu* menu: menus) {
-        m_window->menuBar()->addMenu(menu);
+        addMenu(menu, menuBar);
     }
 }
 
@@ -409,7 +418,7 @@ void DockWindow::setMenuBar(DockMenuBar* menuBar)
     m_menuBar = menuBar;
 
     connect(menuBar, &DockMenuBar::changed, this, &DockWindow::onMenusChanged);
-    connect(m_window->menuBar(), &QMenuBar::triggered, menuBar, &DockMenuBar::onActionTriggered);
+    connect(qMenuBar(), &QMenuBar::triggered, menuBar, &DockMenuBar::onActionTriggered);
 
     emit menuBarChanged(m_menuBar);
 }
@@ -417,6 +426,16 @@ void DockWindow::setMenuBar(DockMenuBar* menuBar)
 QMainWindow* DockWindow::qMainWindow()
 {
     return m_window;
+}
+
+QMenuBar* DockWindow::qMenuBar()
+{
+#ifdef Q_OS_MAC
+    static QMenuBar menuBar;
+    return &menuBar;
+#else
+    return m_window->menuBar();
+#endif
 }
 
 void DockWindow::stackUnder(QWidget* w)

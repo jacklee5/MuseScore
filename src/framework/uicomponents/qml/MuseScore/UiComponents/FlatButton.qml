@@ -1,7 +1,7 @@
-import QtQuick 2.8
+import QtQuick 2.15
 import MuseScore.UiComponents 1.0
 
-FocusableItem {
+FocusableControl {
     id: root
 
     property alias icon: buttonIcon.iconCode
@@ -19,6 +19,7 @@ FocusableItem {
     property int orientation: Qt.Vertical
 
     signal clicked()
+    signal pressAndHold()
 
     QtObject {
         id: privateProperties
@@ -32,16 +33,27 @@ FocusableItem {
 
     opacity: root.enabled ? 1.0 : ui.theme.itemOpacityDisabled
 
-    Rectangle {
-        id: backgroundRect
+    mouseArea.onClicked: root.clicked()
+    mouseArea.onPressAndHold: root.pressAndHold()
 
-        anchors.fill: parent
+    mouseArea.hoverEnabled: true
+    mouseArea.onContainsMouseChanged: {
+        if (!Boolean(root.hint)) {
+            return
+        }
 
-        color: normalStateColor
-        opacity: ui.theme.buttonOpacityNormal
-        border.width: 0
-        radius: 3
+        if (mouseArea.containsMouse) {
+            ui.tooltip.show(this, root.hint)
+        } else {
+            ui.tooltip.hide(this)
+        }
     }
+
+    keynav.onTriggered: root.clicked()
+
+    background.color: normalStateColor
+    background.opacity: ui.theme.buttonOpacityNormal
+    background.radius: 3
 
     Item {
         id: contentWrapper
@@ -105,37 +117,13 @@ FocusableItem {
         ]
     }
 
-    MouseArea {
-        id: mouseArea
-
-        anchors.fill: parent
-
-        hoverEnabled: true
-
-        onReleased: {
-            root.clicked()
-        }
-
-        onContainsMouseChanged: {
-            if (!Boolean(root.hint)) {
-                return
-            }
-
-            if (containsMouse) {
-                ui.tooltip.show(this, root.hint)
-            } else {
-                ui.tooltip.hide(this)
-            }
-        }
-    }
-
     states: [
         State {
             name: "PRESSED"
             when: mouseArea.pressed
 
             PropertyChanges {
-                target: backgroundRect
+                target: root.background
                 color: pressedStateColor
                 opacity: ui.theme.buttonOpacityHit
             }
@@ -146,7 +134,7 @@ FocusableItem {
             when: mouseArea.containsMouse && !mouseArea.pressed
 
             PropertyChanges {
-                target: backgroundRect
+                target: root.background
                 color: hoveredStateColor
                 opacity: ui.theme.buttonOpacityHover
             }

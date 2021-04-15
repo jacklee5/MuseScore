@@ -39,7 +39,16 @@ class AppShellConfiguration : public IAppShellConfiguration
 public:
     void init();
 
+    StartupSessionType startupSessionType() const override;
+    void setStartupSessionType(StartupSessionType type) override;
+
+    io::path startupScorePath() const override;
+    void setStartupScorePath(const io::path& scorePath) override;
+
     bool isAppUpdatable() const override;
+
+    bool needCheckForUpdate() const override;
+    void setNeedCheckForUpdate(bool needCheck) override;
 
     std::string handbookUrl() const override;
     std::string askForHelpUrl() const override;
@@ -59,6 +68,16 @@ public:
     void setIsNotationStatusBarVisible(bool visible) const override;
     ValCh<bool> isNotationNavigatorVisible() const override;
     void setIsNotationNavigatorVisible(bool visible) const override;
+
+    bool needShowSplashScreen() const override;
+    void setNeedShowSplashScreen(bool show) override;
+
+    bool needShowTours() const override;
+    void setNeedShowTours(bool show) override;
+
+    void startEditSettings() override;
+    void applySettings() override;
+    void rollbackSettings() override;
 
     void revertToFactorySettings(bool keepDefaultSettings = false) const override;
 

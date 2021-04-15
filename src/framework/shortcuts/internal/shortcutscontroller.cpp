@@ -25,25 +25,19 @@ using namespace mu::actions;
 
 void ShortcutsController::activate(const std::string& sequence)
 {
-    LOGD() << "activate: " << sequence;
+    LOGD() << sequence;
 
     ShortcutList shortcuts = shortcutsRegister()->shortcutsForSequence(sequence);
     IF_ASSERT_FAILED(!shortcuts.empty()) {
         return;
     }
 
-    ShortcutContext activeCtx = contextResolver()->currentShortcutContext();
     for (const Shortcut& sc: shortcuts) {
-        const ActionItem& a = aregister()->action(sc.action);
-        if (!a.isValid()) {
-            LOGE() << "not found action: " << sc.action;
+        ui::UiActionState st = aregister()->actionState(sc.action);
+        if (!st.enabled) {
             continue;
         }
 
-        if (a.shortcutContext == ShortcutContext::Any || a.shortcutContext == activeCtx) {
-            dispatcher()->dispatch(sc.action);
-        } else {
-            LOGD() << "context is not active for action: " << sc.action;
-        }
+        dispatcher()->dispatch(sc.action);
     }
 }

@@ -29,6 +29,7 @@
 
 #include "abcontext.h"
 #include "abbasestep.h"
+#include "../itestcase.h"
 
 namespace mu::autobot {
 class AbRunner : public async::Asyncable
@@ -36,28 +37,26 @@ class AbRunner : public async::Asyncable
 public:
     AbRunner() = default;
 
-    void init();
-    void run(const io::path& scorePath);
+    void run(const ITestCasePtr& tc, const IAbContextPtr& ctx);
 
-    async::Channel<AbContext> finished() const;
+    async::Channel<IAbContextPtr> stepStarted() const;
+    async::Channel<IAbContextPtr> stepFinished() const;
+
+    async::Channel<IAbContextPtr> allFinished() const;
 
 private:
 
-    struct Step
-    {
-        int delayMSec = 10;
-        AbBaseStepPtr step;
-        Step(AbBaseStep* s)
-            : step(std::shared_ptr<AbBaseStep>(s)) {}
-        Step(AbBaseStep* s, int d)
-            : delayMSec(d), step(std::shared_ptr<AbBaseStep>(s)) {}
-    };
+    void nextStep(const IAbContextPtr& ctx);
+    void doFinish(const IAbContextPtr& ctx);
 
-    void nextStep(const AbContext& ctx);
+    int delayToMSec(ITestStep::Delay d) const;
 
-    std::vector<Step> m_steps;
-    int m_currentIndex = -1;
-    async::Channel<AbContext> m_finished;
+    ITestCasePtr m_testCase;
+    int m_stepIndex = -1;
+
+    async::Channel<IAbContextPtr> m_stepStarted;
+    async::Channel<IAbContextPtr> m_stepFinished;
+    async::Channel<IAbContextPtr> m_allFinished;
 };
 }
 

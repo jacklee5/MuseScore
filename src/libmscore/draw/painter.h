@@ -20,6 +20,7 @@
 #define MU_DRAW_PAINTER_H
 
 #include <list>
+#include <stack>
 
 #include <QPoint>
 #include <QPointF>
@@ -28,6 +29,7 @@
 #include <QFont>
 #include <QPainter>
 
+#include "config.h"
 #include "drawtypes.h"
 #include "ipaintprovider.h"
 
@@ -53,14 +55,16 @@ public:
 
     QPaintDevice* device() const;
     QPainter* qpainter() const;
+    IPaintProviderPtr provider() const;
 
-    bool end();
     bool isActive() const;
+    bool endDraw();
 
     //! NOTE These are methods for debugging and automated testing.
     void beginObject(const std::string& name, const QPointF& pagePos);
-    void endObject(const std::string& name, const QPointF& pagePos);
+    void endObject();
 
+    // state
     void setAntialiasing(bool arg);
     void setCompositionMode(CompositionMode mode);
 
@@ -75,28 +79,22 @@ public:
     void setBrush(const QBrush& brush);
     const QBrush& brush() const;
 
-    void save();
-    void restore();
-
     void setWorldTransform(const QTransform& matrix, bool combine = false);
     const QTransform& worldTransform() const;
-
-    void setTransform(const QTransform& transform, bool combine = false);
-    const QTransform& transform() const;
-
     void scale(qreal sx, qreal sy);
     void rotate(qreal angle);
-
-    void translate(const QPointF& offset);
-    inline void translate(const QPoint& offset);
-    inline void translate(qreal dx, qreal dy);
+    void translate(qreal dx, qreal dy);
+    inline void translate(const QPointF& offset);
 
     QRect window() const;
     void setWindow(const QRect& window);
     QRect viewport() const;
     void setViewport(const QRect& viewport);
 
-    // drawing functions
+    void save();
+    void restore();
+
+    // drawing
     void fillPath(const QPainterPath& path, const QBrush& brush);
     void drawPath(const QPainterPath& path);
     void strokePath(const QPainterPath& path, const QPen& pen);
@@ -158,8 +156,28 @@ public:
     static IPaintProviderPtr extended;
 
 private:
+
+    struct State {
+        QRect window;
+        QRect viewport;
+        bool isVxF = false;
+        QTransform viewTransform;
+        bool isWxF = false;
+        QTransform worldTransform;       // World transformation matrix, not window and viewport
+        QTransform transform;            // Complete transformation matrix
+    };
+
+    void init();
+    State& editableState();
+    const State& state() const;
+    QTransform makeViewTransform() const;
+    void updateMatrix();
+
+    bool endTarget(bool endDraw);
+
     IPaintProviderPtr m_provider;
     std::string m_name;
+    std::stack<State> m_states;
 };
 
 inline void Painter::setPen(const QColor& color)
@@ -167,14 +185,9 @@ inline void Painter::setPen(const QColor& color)
     setPen(QPen(color.isValid() ? color : QColor(Qt::black)));
 }
 
-inline void Painter::translate(qreal dx, qreal dy)
+inline void Painter::translate(const QPointF& offset)
 {
-    translate(QPointF(dx, dy));
-}
-
-inline void Painter::translate(const QPoint& offset)
-{
-    translate(QPointF(offset.x(), offset.y()));
+    translate(offset.x(), offset.y());
 }
 
 inline void Painter::drawLine(const QLineF& l)
@@ -238,14 +251,14 @@ class PainterObjMarker
 {
 public:
     PainterObjMarker(Painter* p, const std::string& name, const QPointF& objPagePos)
-        : m_painter(p), m_name(name), m_objPagePos(objPagePos)
+        : m_painter(p)
     {
         p->beginObject(name, objPagePos);
     }
 
     ~PainterObjMarker()
     {
-        m_painter->endObject(m_name, m_objPagePos);
+        m_painter->endObject();
     }
 
 private:
@@ -254,7 +267,7 @@ private:
     QPointF m_objPagePos;
 };
 
-#ifdef TRACE_OBJ_DRAW_ENABLED
+#ifdef TRACE_DRAW_OBJ_ENABLED
     #define TRACE_OBJ_DRAW \
     mu::draw::PainterObjMarker __drawObjMarker(painter, name(), pagePos())
 

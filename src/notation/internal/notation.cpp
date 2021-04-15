@@ -18,7 +18,6 @@
 //=============================================================================
 #include "notation.h"
 
-#include <QPainter>
 #include <QGuiApplication>
 #include <QScreen>
 
@@ -118,6 +117,17 @@ Notation::Notation(Ms::Score* score)
         notifyAboutNotationChanged();
     });
 
+    configuration()->selectionColorChanged().onReceive(this, [this](int) {
+        notifyAboutNotationChanged();
+    });
+
+    configuration()->canvasOrientation().ch.onReceive(this, [this](framework::Orientation) {
+        m_score->doLayout();
+        for (Ms::Score* score : m_score->scoreList()) {
+            score->doLayout();
+        }
+    });
+
     setScore(score);
 }
 
@@ -130,7 +140,7 @@ void Notation::init()
 {
     Ms::MScore::init(); // initialize libmscore
 
-    Ms::MScore::setNudgeStep(.1); // cursor key (default 0.1)
+    Ms::MScore::setNudgeStep(0.1); // cursor key (default 0.1)
     Ms::MScore::setNudgeStep10(1.0); // Ctrl + cursor key (default 1.0)
     Ms::MScore::setNudgeStep50(0.01); // Alt  + cursor key (default 0.01)
 
@@ -141,6 +151,23 @@ void Notation::init()
 
     Ms::MScore::panPlayback = configuration()->isAutomaticallyPanEnabled();
     Ms::MScore::playRepeats = configuration()->isPlayRepeatsEnabled();
+
+    Ms::gscore = new Ms::MasterScore();
+    Ms::gscore->setPaletteMode(true);
+    Ms::gscore->setMovements(new Ms::Movements());
+    Ms::gscore->setStyle(Ms::MScore::baseStyle());
+
+    Ms::gscore->style().set(Ms::Sid::MusicalTextFont, QString("Leland Text"));
+    Ms::ScoreFont* scoreFont = Ms::ScoreFont::fontFactory("Leland");
+    Ms::gscore->setScoreFont(scoreFont);
+    Ms::gscore->setNoteHeadWidth(scoreFont->width(Ms::SymId::noteheadBlack, Ms::gscore->spatium()) / Ms::SPATIUM20);
+
+    for (int i = 0; i < VOICES; ++i) {
+        Ms::MScore::selectColor[i] = configuration()->selectionColor(i);
+    }
+
+    Ms::MScore::readDefaultStyle(configuration()->defaultStyleFilePath().toQString());
+    Ms::MScore::readPartStyle(configuration()->partStyleFilePath().toQString());
 }
 
 void Notation::setScore(Ms::Score* score)
@@ -282,7 +309,7 @@ void Notation::paintPages(draw::Painter* painter, const QRectF& frameRect, const
 
         QPointF pagePosition(page->pos());
         painter->translate(pagePosition);
-        painter->fillRect(page->bbox(), configuration()->pageColor());
+        paintForeground(painter, page->bbox());
 
         QList<Element*> elements = page->items(frameRect.translated(-page->pos()));
         Ms::paintElements(*painter, elements);
@@ -310,6 +337,23 @@ void Notation::paintPageBorder(draw::Painter* painter, const Ms::Page* page) con
 
     if (!page->isOdd()) {
         painter->drawLine(boundingRect.right(), 0.0, boundingRect.right(), boundingRect.bottom());
+    }
+}
+
+void Notation::paintForeground(mu::draw::Painter* painter, const QRectF& pageRect) const
+{
+    if (score()->printing()) {
+        painter->fillRect(pageRect, Qt::white);
+        return;
+    }
+
+    QString wallpaperPath = configuration()->foregroundWallpaperPath().toQString();
+
+    if (configuration()->foregroundUseColor() || wallpaperPath.isEmpty()) {
+        painter->fillRect(pageRect, configuration()->foregroundColor());
+    } else {
+        QPixmap pixmap(wallpaperPath);
+        painter->drawTiledPixmap(pageRect, pixmap);
     }
 }
 

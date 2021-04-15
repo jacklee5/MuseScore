@@ -45,9 +45,11 @@ ExampleView::ExampleView(QWidget* parent)
     if (notationConfiguration()->foregroundUseColor()) {
         _fgColor = notationConfiguration()->foregroundColor();
     } else {
-        _fgPixmap = new QPixmap(notationConfiguration()->foregroundWallpaper().toQString());
+        QString wallpaperPath = notationConfiguration()->foregroundWallpaperPath().toQString();
+
+        _fgPixmap = new QPixmap(wallpaperPath);
         if (_fgPixmap == 0 || _fgPixmap->isNull()) {
-            qDebug("no valid pixmap %s", qPrintable(notationConfiguration()->foregroundWallpaper().toQString()));
+            qDebug("no valid pixmap %s", qPrintable(wallpaperPath));
         }
     }
     // setup drag canvas state
@@ -201,7 +203,7 @@ void ExampleView::paintEvent(QPaintEvent* ev)
 
         drawBackground(&p, r);
 
-        p.setTransform(_matrix);
+        p.setWorldTransform(_matrix);
         QRectF fr = imatrix.mapRect(QRectF(r));
 
         QRegion r1(r);

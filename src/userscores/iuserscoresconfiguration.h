@@ -38,12 +38,20 @@ public:
     virtual ValCh<io::paths> recentScorePaths() const = 0;
     virtual void setRecentScorePaths(const io::paths& recentScorePaths) = 0;
 
-    virtual io::paths templatesDirPaths() const = 0;
-    virtual io::path scoresPath() const = 0;
+    virtual io::path myFirstScorePath() const = 0;
+
+    virtual io::paths availableTemplatesPaths() const = 0;
+
+    virtual ValCh<io::path> templatesPath() const = 0;
+    virtual void setTemplatesPath(const io::path& path) = 0;
+
+    virtual ValCh<io::path> scoresPath() const = 0;
+    virtual void setScoresPath(const io::path& path) = 0;
+
     virtual io::path defaultSavingFilePath(const io::path& fileName) const = 0;
 
     virtual QColor templatePreviewBackgroundColor() const = 0;
-    virtual async::Channel<QColor> templatePreviewBackgroundColorChanged() const = 0;
+    virtual async::Notification templatePreviewBackgroundChanged() const = 0;
 
     enum class PreferredScoreCreationMode {
         FromInstruments,

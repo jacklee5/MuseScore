@@ -2,7 +2,7 @@
 //  MuseScore
 //  Music Composition & Notation
 //
-//  Copyright (C) 2020 MuseScore BVBA and others
+//  Copyright (C) 2021 MuseScore BVBA and others
 //
 //  This program is free software; you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License version 2.
@@ -16,26 +16,18 @@
 //  along with this program; if not, write to the Free Software
 //  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 //=============================================================================
-#ifndef MU_VST_VSTCONFIGURATION_H
-#define MU_VST_VSTCONFIGURATION_H
 
-#include <string>
-#include "settings.h"
+#ifndef VSTCONFIGURATION_H
+#define VSTCONFIGURATION_H
 
-namespace mu {
-namespace vst {
-class VSTConfiguration
+#include "ivstconfiguration.h"
+
+namespace mu::vst {
+class VstConfiguration : public IVstConfiguration
 {
 public:
-    void init();
-
-    std::string searchPaths() const;
-
-    //! default paths in system for plugin scanning
-    static const std::string DEFAULT_PATHS;
-    static const mu::framework::Settings::Key SEARCH_PATHS;
+    io::path customSearchPath() const override;
 };
-} // namespace vst
-} // namespace mu
+}
 
-#endif // MU_VST_VSTCONFIGURATION_H
+#endif // VSTCONFIGURATION_H

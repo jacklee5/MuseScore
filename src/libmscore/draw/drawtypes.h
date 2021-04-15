@@ -19,6 +19,7 @@
 #ifndef MU_DRAW_DRAWTYPES_H
 #define MU_DRAW_DRAWTYPES_H
 
+#include <memory>
 #include <QPainterPath>
 #include <QBrush>
 #include <QPen>
@@ -30,35 +31,45 @@ enum class CompositionMode {
     HardLight
 };
 
+enum class DrawMode {
+    Stroke = 0,
+    Fill,
+    StrokeAndFill
+};
+
+enum class PolygonMode {
+    OddEven,
+    Winding,
+    Convex,
+    Polyline
+};
+
 struct Scale {
     double x = 0.0;
     double y = 0.0;
 };
 
-struct FillPath {
-    QPainterPath path;
-    QBrush brush;
-};
-
-struct FillRect {
-    QRectF rect;
-    QBrush brush;
-};
-
-struct FillPolygon {
-    QPolygonF polygon;
-    Qt::FillRule fillRule = Qt::OddEvenFill;
-    bool convexMode = false;
-};
-
 struct DrawPath {
     QPainterPath path;
     QPen pen;
-    bool stroke = false;
+    QBrush brush;
+    DrawMode mode = DrawMode::StrokeAndFill;
+};
+
+struct DrawRect {
+    QRectF rect;
+    QPen pen;
+    QBrush brush;
+    DrawMode mode = DrawMode::StrokeAndFill;
+};
+
+struct DrawPolygon {
+    QPolygonF polygon;
+    PolygonMode mode = PolygonMode::OddEven;
 };
 
 struct DrawText {
-    QPointF point;
+    QPointF pos;
     QString text;
 };
 
@@ -74,7 +85,7 @@ struct DrawGlyphRun {
 };
 
 struct DrawPixmap {
-    QPointF point;
+    QPointF pos;
     QPixmap pm;
 };
 
@@ -82,6 +93,79 @@ struct DrawTiledPixmap {
     QRectF rect;
     QPixmap pm;
     QPointF offset;
+};
+
+struct DrawData
+{
+    struct State {
+        QPen pen;
+        QBrush brush;
+        QFont font;
+        QTransform transform;
+        bool isAntialiasing = false;
+        CompositionMode compositionMode = CompositionMode::SourceOver;
+    };
+
+    struct Data {
+        State state;
+
+        std::vector<DrawPath> paths;
+        std::vector<DrawPolygon> polygons;
+        std::vector<DrawText> texts;
+        std::vector<DrawRectText> rectTexts;
+        std::vector<DrawGlyphRun> glyphs;
+        std::vector<DrawPixmap> pixmaps;
+        std::vector<DrawTiledPixmap> tiledPixmap;
+
+        bool empty() const
+        {
+            return paths.empty()
+                   && polygons.empty()
+                   && texts.empty()
+                   && rectTexts.empty()
+                   && glyphs.empty()
+                   && pixmaps.empty()
+                   && tiledPixmap.empty();
+        }
+    };
+
+    struct Object {
+        std::string name;
+        QPointF pagePos;
+        std::vector<Data> datas;
+
+        Object() = default;
+        Object(const std::string& n, const QPointF& p)
+            : name(n), pagePos(p)
+        {
+            //! NOTE Make data with default state
+            datas.push_back(DrawData::Data());
+        }
+    };
+
+    std::string name;
+    std::vector<Object> objects;
+};
+
+using DrawDataPtr = std::shared_ptr<DrawData>;
+
+struct Diff {
+    DrawDataPtr dataAdded;
+    DrawDataPtr dataRemoved;
+
+    bool empty() const
+    {
+        bool ret = true;
+        if (dataAdded) {
+            ret = dataAdded->objects.empty();
+        }
+
+        if (ret && dataRemoved) {
+            ret = dataRemoved->objects.empty();
+        }
+
+        return ret;
+    }
 };
 }
 #endif // MU_DRAW_DRAWTYPES_H

@@ -20,18 +20,21 @@
 #include "../abinvoker.h"
 
 using namespace mu::autobot;
+using namespace mu::actions;
 
-void AbScoreZoom::doRun(AbContext ctx)
+AbScoreZoom::AbScoreZoom(int percent, Delay delay)
+    : AbBaseStep(delay), m_percent(percent)
 {
-    dispatcher()->dispatch("zoomout");
+}
 
-    AbInvoker::invoke(500, [this, ctx]() {
-        dispatcher()->dispatch("zoomin");
+std::string AbScoreZoom::name() const
+{
+    return std::string("Zoom_") + std::to_string(m_percent);
+}
 
-        AbInvoker::invoke(500, [this, ctx]() {
-            AbContext newCtx = ctx;
-            newCtx.ret = make_ret(Ret::Code::Ok);
-            doFinish(newCtx);
-        });
-    });
+void AbScoreZoom::doRun(IAbContextPtr ctx)
+{
+    dispatcher()->dispatch("zoom-x-percent", ActionData::make_arg1<int>(m_percent));
+    ctx->setStepVal(IAbContext::Key::ViewZoom, m_percent);
+    doFinish(ctx, make_ret(Ret::Code::Ok));
 }

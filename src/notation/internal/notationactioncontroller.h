@@ -22,6 +22,7 @@
 #include "modularity/ioc.h"
 #include "actions/iactionsdispatcher.h"
 #include "actions/actionable.h"
+#include "async/asyncable.h"
 #include "context/iglobalcontext.h"
 #include "inotation.h"
 #include "iinteractive.h"
@@ -29,7 +30,7 @@
 #include "inotationconfiguration.h"
 
 namespace mu::notation {
-class NotationActionController : public actions::Actionable
+class NotationActionController : public actions::Actionable, public async::Asyncable
 {
     INJECT(notation, actions::IActionsDispatcher, dispatcher)
     INJECT(notation, context::IGlobalContext, globalContext)
@@ -40,15 +41,23 @@ class NotationActionController : public actions::Actionable
 public:
     void init();
 
+    bool canReceiveAction(const actions::ActionCode& code) const override;
+
+    async::Notification currentNotationChanged() const;
+
+    INotationNoteInputPtr currentNotationNoteInput() const;
+    async::Notification currentNotationNoteInputChanged() const;
+
+    INotationInteractionPtr currentNotationInteraction() const;
+
 private:
-    bool canReceiveAction(const actions::ActionCode& actionCode) const override;
 
     INotationPtr currentNotation() const;
-    INotationInteractionPtr currentNotationInteraction() const;
     INotationElementsPtr currentNotationElements() const;
     INotationSelectionPtr currentNotationSelection() const;
-    INotationNoteInputPtr currentNotationNoteInput() const;
+    INotationUndoStackPtr currentNotationUndoStack() const;
 
+    void toggleNoteInput();
     void toggleNoteInputMethod(NoteInputMethod method);
     void addNote(NoteName note, NoteAddingMode addingMode);
     void addText(TextType type);
@@ -56,10 +65,14 @@ private:
     void padNote(const Pad& pad);
     void putNote(const actions::ActionData& data);
 
+    void toggleVisible();
+
     void toggleAccidental(AccidentalType type);
     void addArticulation(SymbolId articulationSymbolId);
 
     void putTuplet(int tupletCount);
+    void addBeamToSelectedChordRests(BeamMode mode);
+    void addBracketsToSelection(BracketsType type);
 
     void moveAction(const actions::ActionCode& actionCode);
     void moveText(INotationInteractionPtr interaction, const actions::ActionCode& actionCode);
@@ -79,11 +92,13 @@ private:
     void undo();
     void redo();
 
+    void addChordToSelection(MoveDirection direction);
     void selectAllSimilarElements();
     void selectAllSimilarElementsInStaff();
     void selectAllSimilarElementsInRange();
     void openSelectionMoreOptions();
     void selectAll();
+    void selectSection();
 
     void splitMeasure();
     void joinSelectedMeasures();
@@ -114,6 +129,7 @@ private:
     void resequenceRehearsalMarks();
     void unrollRepeats();
     void copyLyrics();
+    void addGraceNotesToSelectedNotes(GraceNoteType type);
 
     void resetState();
     void resetStretch();
@@ -129,22 +145,11 @@ private:
     void openPartsDialog();
     void openTupletOtherDialog();
 
-    void toggleShowingInvisibleElements();
-    void toggleShowingUnprintableElements();
-    void toggleShowingFrames();
-    void toggleShowingPageMargins();
-    void toggleMarkIrregularMeasures();
+    void toggleScoreConfig(ScoreConfigType configType);
     void toggleNavigator();
     void toggleMixer();
 
     bool isTextEditting() const;
-
-    enum class PastingType {
-        Default,
-        Half,
-        Double,
-        Special
-    };
 
     void pasteSelection(PastingType type = PastingType::Default);
     Fraction resolvePastingScale(const INotationInteractionPtr& interaction, PastingType type) const;
@@ -152,6 +157,13 @@ private:
     FilterElementsOptions elementsFilterOptions(const Element* element) const;
 
     void startNoteInputIfNeed();
+
+    bool hasSelection() const;
+    bool canUndo() const;
+    bool canRedo() const;
+    bool isNotationPage() const;
+
+    async::Notification m_currentNotationNoteInputChanged;
 };
 }
 

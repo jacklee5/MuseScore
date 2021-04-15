@@ -18,7 +18,7 @@ ListItemBlank {
 
     signal copyPartRequested()
     signal removePartRequested()
-    signal voicesVisibilityChangeRequested()
+    signal voicesVisibilityChangeRequested(var voiceIndex, var voiceVisible)
     signal partClicked()
 
     function startEditTitle() {
@@ -151,14 +151,14 @@ ListItemBlank {
         y: showVoicesPopupButton.y + showVoicesPopupButton.height
 
         onVoiceVisibilityChangeRequested: {
-            root.voicesVisibilityChangeRequested()
+            root.voicesVisibilityChangeRequested(voiceIndex, voiceVisible)
         }
     }
 
     ContextMenu {
         id: contextMenu
 
-        StyledMenuItem {
+        StyledContextMenuItem {
             id: duplicateItem
 
             text: qsTrc("notation", "Duplicate")
@@ -168,7 +168,7 @@ ListItemBlank {
             }
         }
 
-        StyledMenuItem {
+        StyledContextMenuItem {
             id: deleteItem
 
             text: qsTrc("notation", "Delete score")
@@ -178,7 +178,7 @@ ListItemBlank {
             }
         }
 
-        StyledMenuItem {
+        StyledContextMenuItem {
             id: renameItem
 
             text: qsTrc("notation", "Rename")

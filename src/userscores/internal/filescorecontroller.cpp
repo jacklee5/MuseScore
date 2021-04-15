@@ -29,6 +29,7 @@ using namespace mu;
 using namespace mu::userscores;
 using namespace mu::notation;
 using namespace mu::framework;
+using namespace mu::actions;
 
 void FileScoreController::init()
 {
@@ -44,11 +45,28 @@ void FileScoreController::init()
     dispatcher()->reg(this, "file-import-pdf", this, &FileScoreController::importPdf);
 
     dispatcher()->reg(this, "clear-recent", this, &FileScoreController::clearRecentScores);
+
+    dispatcher()->reg(this, "continue-last-session", this, &FileScoreController::continueLastSession);
 }
 
 IMasterNotationPtr FileScoreController::currentMasterNotation() const
 {
     return globalContext()->currentMasterNotation();
+}
+
+INotationPtr FileScoreController::currentNotation() const
+{
+    return currentMasterNotation() ? currentMasterNotation()->notation() : nullptr;
+}
+
+INotationInteractionPtr FileScoreController::currentInteraction() const
+{
+    return currentNotation() ? currentNotation()->interaction() : nullptr;
+}
+
+INotationSelectionPtr FileScoreController::currentNotationSelection() const
+{
+    return currentNotation() ? currentInteraction()->selection() : nullptr;
 }
 
 Ret FileScoreController::openScore(const io::path& scorePath)
@@ -180,6 +198,18 @@ void FileScoreController::clearRecentScores()
     configuration()->setRecentScorePaths({});
 }
 
+void FileScoreController::continueLastSession()
+{
+    io::paths recentScorePaths = configuration()->recentScorePaths().val;
+
+    if (recentScorePaths.empty()) {
+        return;
+    }
+
+    io::path lastScorePath = recentScorePaths.front();
+    openScore(lastScorePath);
+}
+
 io::path FileScoreController::selectScoreOpenningFile(const QStringList& filter)
 {
     QString filterStr = filter.join(";;");
@@ -267,4 +297,19 @@ void FileScoreController::prependToRecentScoreList(const io::path& filePath)
 
     recentScorePaths.insert(recentScorePaths.begin(), filePath);
     configuration()->setRecentScorePaths(recentScorePaths);
+}
+
+bool FileScoreController::isScoreOpened() const
+{
+    return currentMasterNotation() != nullptr;
+}
+
+bool FileScoreController::isNeedSaveScore() const
+{
+    return currentMasterNotation() && currentMasterNotation()->needSave().val;
+}
+
+bool FileScoreController::hasSelection() const
+{
+    return currentNotationSelection() ? !currentNotationSelection()->isNone() : false;
 }

@@ -23,6 +23,7 @@
 #include "retval.h"
 
 #include "io/path.h"
+#include "appshelltypes.h"
 
 namespace mu::appshell {
 class IAppShellConfiguration : MODULE_EXPORT_INTERFACE
@@ -32,7 +33,16 @@ class IAppShellConfiguration : MODULE_EXPORT_INTERFACE
 public:
     virtual ~IAppShellConfiguration() = default;
 
+    virtual StartupSessionType startupSessionType() const = 0;
+    virtual void setStartupSessionType(StartupSessionType type) = 0;
+
+    virtual io::path startupScorePath() const = 0;
+    virtual void setStartupScorePath(const io::path& scorePath) = 0;
+
     virtual bool isAppUpdatable() const = 0;
+
+    virtual bool needCheckForUpdate() const = 0;
+    virtual void setNeedCheckForUpdate(bool needCheck) = 0;
 
     virtual std::string handbookUrl() const = 0;
     virtual std::string askForHelpUrl() const = 0;
@@ -52,6 +62,16 @@ public:
     virtual void setIsNotationStatusBarVisible(bool visible) const = 0;
     virtual ValCh<bool> isNotationNavigatorVisible() const = 0;
     virtual void setIsNotationNavigatorVisible(bool visible) const = 0;
+
+    virtual bool needShowSplashScreen() const = 0;
+    virtual void setNeedShowSplashScreen(bool show) = 0;
+
+    virtual bool needShowTours() const = 0;
+    virtual void setNeedShowTours(bool show) = 0;
+
+    virtual void startEditSettings() = 0;
+    virtual void applySettings() = 0;
+    virtual void rollbackSettings() = 0;
 
     virtual void revertToFactorySettings(bool keepDefaultSettings = false) const = 0;
 };
