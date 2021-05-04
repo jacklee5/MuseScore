@@ -178,6 +178,15 @@ public:
 
         GRADUATION_CAP = 0xF19D,
 
+        SCORE = 0xF319,
+
+        AUTO_TEXT = 0xF329,
+        NOTE_HEAD_EIGHTH = 0xF33A,
+        BEAM_START = 0xF33B,
+        BEAM_MIDDLE = 0xF33D,
+        BEAM_32 = 0xF33E,
+        BEAM_64 = 0xF33F,
+
         QUESTION_MARK = 0xF340,
 
         NOTE_HEAD_QUARTER = 0xF341,
@@ -193,7 +202,10 @@ public:
         CHORD_SYMBOL = 0xF352,
         GUITAR_BEND = 0xF353,
         MULTIMEASURE_REST = 0xF355,
+        IMPORT = 0xF357,
+        UPDATE = 0xF358,
         GUITAR_TREMOLO_BAR = 0xF35C,
+        SHORTCUTS = 0xF35D,
 
         TREMOLO_TWO_NOTES = 0xF35F,
         TREMOLO_STYLE_DEFAULT = 0xF35F,
@@ -266,6 +278,8 @@ public:
         TOOLBAR_GRIP = 0xF3A2,
 
         PAGE = 0xF3A5,
+
+        CONTINUOUS_VIEW_VERTICAL = 0xF3AF,
 
         PAN_SCORE = 0xF3B0,
         COUNT_IN = 0xF3B1,

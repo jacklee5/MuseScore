@@ -53,8 +53,8 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/inotationplayback.h
     ${CMAKE_CURRENT_LIST_DIR}/inotationelements.h
     ${CMAKE_CURRENT_LIST_DIR}/inotationparts.h
-    ${CMAKE_CURRENT_LIST_DIR}/internal/notationactions.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/internal/notationactions.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/notationuiactions.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/notationuiactions.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/igetscore.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/masternotation.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/masternotation.h
@@ -180,6 +180,7 @@ set(MODULE_LINK
     libmscore
     commonscene
     uicomponents
+    ui
     )
 
 if (NOT MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 9.0)

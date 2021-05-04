@@ -7,15 +7,24 @@ import MuseScore.Workspace 1.0
 Rectangle {
     id: root
 
+    width: parent.width
+    height: 36
+
     NotationAccessibilityInfo {
         anchors.left: parent.left
         anchors.leftMargin: 20
+        anchors.right: statusBarRow.left
         anchors.verticalCenter: parent.verticalCenter
+
+        horizontalAlignment: Text.AlignLeft
     }
 
     Row {
+        id: statusBarRow
+
         anchors.right: parent.right
         anchors.rightMargin: 20
+        anchors.verticalCenter: parent.verticalCenter
 
         spacing: 12
 

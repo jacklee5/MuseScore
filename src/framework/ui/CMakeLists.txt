@@ -56,8 +56,11 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/uierrors.h
     ${CMAKE_CURRENT_LIST_DIR}/uitypes.h
     ${CMAKE_CURRENT_LIST_DIR}/imainwindow.h
-    ${CMAKE_CURRENT_LIST_DIR}/itheme.h
-    ${CMAKE_CURRENT_LIST_DIR}/iplatformtheme.h
+    ${CMAKE_CURRENT_LIST_DIR}/iuiactionsregister.h
+    ${CMAKE_CURRENT_LIST_DIR}/iuiactionsmodule.h
+    ${CMAKE_CURRENT_LIST_DIR}/iuicontextresolver.h
+    ${CMAKE_CURRENT_LIST_DIR}/ikeynavigation.h
+    ${CMAKE_CURRENT_LIST_DIR}/ikeynavigationcontroller.h
 
     ${CMAKE_CURRENT_LIST_DIR}/internal/interactiveuriregister.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/interactiveuriregister.h
@@ -65,14 +68,23 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/internal/uiengine.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/uiconfiguration.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/uiconfiguration.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/themeconverter.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/themeconverter.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/iplatformtheme.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/uiactionsregister.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/uiactionsregister.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/keynavigationcontroller.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/keynavigationcontroller.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/keynavigationuiactions.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/keynavigationuiactions.h
     ${PLATFORM_THEME_SRC}
 
     ${CMAKE_CURRENT_LIST_DIR}/view/interactiveprovider.cpp
     ${CMAKE_CURRENT_LIST_DIR}/view/interactiveprovider.h
     ${CMAKE_CURRENT_LIST_DIR}/view/qmlapi.cpp
     ${CMAKE_CURRENT_LIST_DIR}/view/qmlapi.h
-    ${CMAKE_CURRENT_LIST_DIR}/view/theme.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/view/theme.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/uitheme.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/uitheme.h
     ${CMAKE_CURRENT_LIST_DIR}/view/iconcodes.h
     ${CMAKE_CURRENT_LIST_DIR}/view/musicalsymbolcodes.h
     ${CMAKE_CURRENT_LIST_DIR}/view/qmltranslation.cpp
@@ -85,11 +97,31 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/view/qmltooltip.h
     ${CMAKE_CURRENT_LIST_DIR}/view/widgetdialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/view/widgetdialog.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/abstractmenumodel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/abstractmenumodel.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/abstractkeynavigation.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/abstractkeynavigation.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/keynavigationsection.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/keynavigationsection.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/keynavigationsubsection.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/keynavigationsubsection.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/keynavigationcontrol.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/keynavigationcontrol.h
 
     ${CMAKE_CURRENT_LIST_DIR}/dev/interactivetestsmodel.cpp
     ${CMAKE_CURRENT_LIST_DIR}/dev/interactivetestsmodel.h
     ${CMAKE_CURRENT_LIST_DIR}/dev/testdialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/dev/testdialog.h
+    ${CMAKE_CURRENT_LIST_DIR}/dev/keynav/keynavdevmodel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/dev/keynav/keynavdevmodel.h
+    ${CMAKE_CURRENT_LIST_DIR}/dev/keynav/abstractkeynavdevitem.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/dev/keynav/abstractkeynavdevitem.h
+    ${CMAKE_CURRENT_LIST_DIR}/dev/keynav/keynavdevcontrol.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/dev/keynav/keynavdevcontrol.h
+    ${CMAKE_CURRENT_LIST_DIR}/dev/keynav/keynavdevsubsection.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/dev/keynav/keynavdevsubsection.h
+    ${CMAKE_CURRENT_LIST_DIR}/dev/keynav/keynavdevsection.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/dev/keynav/keynavdevsection.h
     )
 
 set(MODULE_UI

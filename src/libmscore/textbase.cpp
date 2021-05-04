@@ -182,7 +182,7 @@ void TextCursor::clearSelection()
 
 void TextCursor::init()
 {
-    _format.setFontFamily("FreeSerif");
+    _format.setFontFamily("Edwin");
     _format.setFontSize(12.0);
     _format.setStyle(FontStyle::Normal);
     _format.setPreedit(false);
@@ -283,9 +283,6 @@ TextBlock& TextCursor::curLine() const
 
 void TextCursor::changeSelectionFormat(FormatId id, QVariant val)
 {
-    if (!hasSelection()) {
-        _text->selectAll(this);
-    }
     int r1 = selectLine();
     int r2 = row();
     int c1 = selectColumn();
@@ -367,8 +364,16 @@ const CharFormat TextCursor::selectedFragmentsFormat() const
 
 void TextCursor::setFormat(FormatId id, QVariant val)
 {
+    if (!hasSelection()) {
+        if (format()->formatValue(id) == val) {
+            return;
+        }
+
+        _text->selectAll(this);
+    }
+
     changeSelectionFormat(id, val);
-    format()->setFormat(id, val);
+    format()->setFormatValue(id, val);
     text()->setTextInvalid();
 }
 
@@ -905,7 +910,7 @@ void TextBase::drawTextWorkaround(mu::draw::Painter* p, QFont& f, const QPointF 
         qreal dx = p->worldTransform().dx();
         qreal dy = p->worldTransform().dy();
         // diagonal elements will now be changed to 1.0
-        p->setTransform(QTransform(1.0, 0.0, 0.0, 1.0, dx, dy));
+        p->setWorldTransform(QTransform(1.0, 0.0, 0.0, 1.0, dx, dy));
 
         // correction factor for bold text drawing, due to the change of the diagonal elements
         qreal factor = 1.0 / mm;
@@ -955,7 +960,7 @@ void TextBase::drawTextWorkaround(mu::draw::Painter* p, QFont& f, const QPointF 
             positions2.clear();
         }
         // Restore the QPainter to its former state
-        p->setTransform(QTransform(mm, 0.0, 0.0, mm, dx, dy));
+        p->setWorldTransform(QTransform(mm, 0.0, 0.0, mm, dx, dy));
         p->restore();
     } else {
         p->setFont(f);
@@ -1543,10 +1548,28 @@ void TextBlock::changeFormat(FormatId id, QVariant data, int start, int n)
 }
 
 //---------------------------------------------------------
-//   setFormat
+//   formatValue
 //---------------------------------------------------------
 
-void CharFormat::setFormat(FormatId id, QVariant data)
+QVariant CharFormat::formatValue(FormatId id) const
+{
+    switch (id) {
+    case FormatId::Bold: return bold();
+    case FormatId::Italic: return italic();
+    case FormatId::Underline: return underline();
+    case FormatId::Valign: return static_cast<int>(valign());
+    case FormatId::FontSize: return fontSize();
+    case FormatId::FontFamily: return fontFamily();
+    }
+
+    return QVariant();
+}
+
+//---------------------------------------------------------
+//   setFormatValue
+//---------------------------------------------------------
+
+void CharFormat::setFormatValue(FormatId id, QVariant data)
 {
     switch (id) {
     case FormatId::Bold:
@@ -1576,7 +1599,7 @@ void CharFormat::setFormat(FormatId id, QVariant data)
 
 void TextFragment::changeFormat(FormatId id, QVariant data)
 {
-    format.setFormat(id, data);
+    format.setFormatValue(id, data);
 }
 
 //---------------------------------------------------------
@@ -1688,6 +1711,7 @@ TextBase::TextBase(const TextBase& st)
     _cursor                      = st._cursor;
     _text                        = st._text;
     _layout                      = st._layout;
+    textInvalid                  = st.textInvalid;
     layoutInvalid                = st.layoutInvalid;
     frame                        = st.frame;
     _layoutToParentWidth         = st._layoutToParentWidth;

@@ -36,6 +36,8 @@ class DockPanel : public DockView
     Q_PROPERTY(bool floatable READ floatable WRITE setFloatable NOTIFY floatableChanged)
     Q_PROPERTY(bool closable READ closable WRITE setClosable NOTIFY closableChanged)
 
+    Q_PROPERTY(bool isShown READ isShown NOTIFY isShownChanged)
+
 public:
     explicit DockPanel(QQuickItem* parent = nullptr);
     ~DockPanel() override;
@@ -49,6 +51,7 @@ public:
 
     bool floatable() const;
     bool closable() const;
+    bool isShown() const;
     bool visible() const override;
 
     struct Widget {
@@ -67,6 +70,9 @@ public slots:
     void setFloatable(bool floatable);
     void setClosable(bool closable);
 
+private slots:
+    void onWidgetEvent(QEvent* event) override;
+
 signals:
     void titleChanged(QString title);
     void areaChanged(Qt::DockWidgetArea area);
@@ -74,6 +80,8 @@ signals:
     void minimumWidthChanged(int width);
     void floatableChanged(bool floatable);
     void closableChanged(bool closable);
+    void closed();
+    void isShownChanged(bool isShown);
 
 protected:
     void onComponentCompleted() override;
@@ -87,8 +95,10 @@ private:
 
     Widget m_dock;
     QString m_title;
+    EventsWatcher* m_eventsWatcher = nullptr;
 
     int m_preferedWidth = 0;
+    bool m_isShown = false;
 };
 }
 

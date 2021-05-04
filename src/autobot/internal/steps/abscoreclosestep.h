@@ -28,10 +28,12 @@ class AbScoreCloseStep : public AbBaseStep
 {
     INJECT(autobot, context::IGlobalContext, context)
 public:
-    AbScoreCloseStep() = default;
+    AbScoreCloseStep(Delay delay = Delay::Fast);
+
+    std::string name() const override;
 
 protected:
-    void doRun(AbContext ctx) override;
+    void doRun(IAbContextPtr ctx) override;
 };
 }
 

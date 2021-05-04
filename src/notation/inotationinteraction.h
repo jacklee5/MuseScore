@@ -42,11 +42,16 @@ public:
     virtual void showShadowNote(const QPointF& pos) = 0;
     virtual void hideShadowNote() = 0;
 
+    // Visibility
+    virtual void toggleVisible() = 0;
+
     // Select
     virtual Element* hitElement(const QPointF& pos, float width) const = 0;
     virtual int hitStaffIndex(const QPointF& pos) const = 0;
+    virtual void addChordToSelection(MoveDirection d) = 0;
     virtual void select(const std::vector<Element*>& elements, SelectType type, int staffIndex = 0) = 0;
     virtual void selectAll() = 0;
+    virtual void selectSection() = 0;
     virtual INotationSelectionPtr selection() const = 0;
     virtual void clearSelection() = 0;
     virtual async::Notification selectionChanged() const = 0;
@@ -106,8 +111,11 @@ public:
     virtual void addOttavaToSelection(OttavaType type) = 0;
     virtual void addHairpinToSelection(HairpinType type) = 0;
     virtual void addAccidentalToSelection(AccidentalType type) = 0;
+    virtual void addBracketsToSelection(BracketsType type) = 0;
     virtual void changeSelectedNotesArticulation(SymbolId articulationSymbolId) = 0;
-    virtual void addTupletToSelectedChords(const TupletOptions& options) = 0;
+    virtual void addGraceNotesToSelectedNotes(GraceNoteType type) = 0;
+    virtual void addTupletToSelectedChordRests(const TupletOptions& options) = 0;
+    virtual void addBeamToSelectedChordRests(BeamMode mode) = 0;
 
     virtual void setBreaksSpawnInterval(BreaksSpawnIntervalType intervalType, int interval = 0) = 0;
     virtual void transpose(const TransposeOptions& options) = 0;

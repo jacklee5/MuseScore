@@ -230,6 +230,22 @@ void NotationInteraction::hideShadowNote()
     m_shadowNote->setVisible(false);
 }
 
+void NotationInteraction::toggleVisible()
+{
+    startEdit();
+
+    for (Element* el : selection()->elements()) {
+        if (el->isBracket()) {
+            continue;
+        }
+        el->undoChangeProperty(Ms::Pid::VISIBLE, !el->visible());
+    }
+
+    apply();
+
+    notifyAboutNotationChanged();
+}
+
 Element* NotationInteraction::hitElement(const QPointF& pos, float width) const
 {
     QList<Ms::Element*> elements = hitElements(pos, width);
@@ -408,6 +424,23 @@ bool NotationInteraction::elementIsLess(const Ms::Element* e1, const Ms::Element
     return e1->z() <= e2->z();
 }
 
+void NotationInteraction::addChordToSelection(MoveDirection d)
+{
+    IF_ASSERT_FAILED(MoveDirection::Left == d || MoveDirection::Right == d) {
+        return;
+    }
+
+    QString cmd;
+    if (MoveDirection::Left == d) {
+        cmd = "select-prev-chord";
+    } else if (MoveDirection::Right == d) {
+        cmd = "select-next-chord";
+    }
+
+    score()->selectMove(cmd);
+    notifyAboutSelectionChanged();
+}
+
 void NotationInteraction::select(const std::vector<Element*>& elements, SelectType type, int staffIndex)
 {
     if (needEndTextEditing(elements)) {
@@ -426,6 +459,13 @@ void NotationInteraction::select(const std::vector<Element*>& elements, SelectTy
 void NotationInteraction::selectAll()
 {
     score()->cmdSelectAll();
+
+    notifyAboutSelectionChanged();
+}
+
+void NotationInteraction::selectSection()
+{
+    score()->cmdSelectSection();
 
     notifyAboutSelectionChanged();
 }
@@ -739,9 +779,12 @@ bool NotationInteraction::drop(const QPointF& pos, Qt::KeyboardModifiers modifie
     startEdit();
     score()->addRefresh(m_dropData.ed.dropElement->canvasBoundingRect());
     switch (m_dropData.ed.dropElement->type()) {
+    case ElementType::TEXTLINE:
+        firstStaffOnly = m_dropData.ed.dropElement->systemFlag();
+    // fall-thru
     case ElementType::VOLTA:
         // voltas drop to first staff by default, or closest staff if Control is held
-        firstStaffOnly = !(m_dropData.ed.modifiers & Qt::ControlModifier);
+        firstStaffOnly = firstStaffOnly || !(m_dropData.ed.modifiers & Qt::ControlModifier);
     // fall-thru
     case ElementType::OTTAVA:
     case ElementType::TRILL:
@@ -750,7 +793,6 @@ bool NotationInteraction::drop(const QPointF& pos, Qt::KeyboardModifiers modifie
     case ElementType::VIBRATO:
     case ElementType::PALM_MUTE:
     case ElementType::HAIRPIN:
-    case ElementType::TEXTLINE:
     {
         Ms::Spanner* spanner = ptr::checked_cast<Ms::Spanner>(m_dropData.ed.dropElement);
         score()->cmdAddSpanner(spanner, pos, firstStaffOnly);
@@ -2175,6 +2217,31 @@ void NotationInteraction::addAccidentalToSelection(AccidentalType type)
     notifyAboutSelectionChanged();
 }
 
+void NotationInteraction::addBracketsToSelection(BracketsType type)
+{
+    if (selection()->isNone()) {
+        return;
+    }
+
+    startEdit();
+
+    switch (type) {
+    case BracketsType::Brackets:
+        score()->cmdAddBracket();
+        break;
+    case BracketsType::Braces:
+        score()->cmdAddBraces();
+        break;
+    case BracketsType::Parentheses:
+        score()->cmdAddParentheses();
+        break;
+    }
+
+    apply();
+
+    notifyAboutNotationChanged();
+}
+
 void NotationInteraction::changeSelectedNotesArticulation(SymbolId articulationSymbolId)
 {
     if (selection()->isNone()) {
@@ -2203,7 +2270,43 @@ void NotationInteraction::changeSelectedNotesArticulation(SymbolId articulationS
     notifyAboutSelectionChanged();
 }
 
-void NotationInteraction::addTupletToSelectedChords(const TupletOptions& options)
+void NotationInteraction::addGraceNotesToSelectedNotes(GraceNoteType type)
+{
+    if (selection()->isNone()) {
+        return;
+    }
+
+    int denominator = 1;
+
+    switch (type) {
+    case GraceNoteType::GRACE4:
+    case GraceNoteType::INVALID:
+    case GraceNoteType::NORMAL:
+        denominator = 1;
+        break;
+    case GraceNoteType::ACCIACCATURA:
+    case GraceNoteType::APPOGGIATURA:
+    case GraceNoteType::GRACE8_AFTER:
+        denominator = 2;
+        break;
+    case GraceNoteType::GRACE16:
+    case GraceNoteType::GRACE16_AFTER:
+        denominator = 4;
+        break;
+    case GraceNoteType::GRACE32:
+    case GraceNoteType::GRACE32_AFTER:
+        denominator = 8;
+        break;
+    }
+
+    startEdit();
+    score()->cmdAddGrace(type, Ms::MScore::division / denominator);
+    apply();
+
+    notifyAboutNotationChanged();
+}
+
+void NotationInteraction::addTupletToSelectedChordRests(const TupletOptions& options)
 {
     if (selection()->isNone()) {
         return;
@@ -2218,6 +2321,19 @@ void NotationInteraction::addTupletToSelectedChords(const TupletOptions& options
     apply();
 
     notifyAboutSelectionChanged();
+}
+
+void NotationInteraction::addBeamToSelectedChordRests(BeamMode mode)
+{
+    if (selection()->isNone()) {
+        return;
+    }
+
+    startEdit();
+    score()->cmdSetBeamMode(mode);
+    apply();
+
+    notifyAboutNotationChanged();
 }
 
 void NotationInteraction::setBreaksSpawnInterval(BreaksSpawnIntervalType intervalType, int interval)

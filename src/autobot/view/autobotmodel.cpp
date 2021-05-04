@@ -25,14 +25,75 @@ using namespace mu::autobot;
 AutobotModel::AutobotModel(QObject* parent)
     : QObject(parent)
 {
+    m_files = new AbFilesModel(this);
+
+    auto status = autobot()->status();
+    status.ch.onReceive(this, [this](IAutobot::Status) {
+        emit statusChanged();
+    });
+
+    auto tc = autobot()->currentTestCase();
+    tc.ch.onReceive(this, [this](ITestCasePtr) {
+        emit currentTestCaseChanged();
+    });
 }
 
-void AutobotModel::run()
+void AutobotModel::runAllFiles()
 {
-    autobot()->run();
+    autobot()->runAllFiles();
+}
+
+void AutobotModel::runFile(int fileIndex)
+{
+    autobot()->runFile(fileIndex);
 }
 
 void AutobotModel::stop()
 {
     autobot()->stop();
+}
+
+QVariantList AutobotModel::testCases() const
+{
+    QVariantList list;
+    std::vector<ITestCasePtr> tests = autobot()->testCases();
+    if (tests.empty()) {
+        QVariantMap item = { { "name", "None" } };
+        list << item;
+        return list;
+    }
+
+    for (const ITestCasePtr& tc : tests) {
+        QVariantMap item;
+        item["name"] = QString::fromStdString(tc->name());
+        list << item;
+    }
+
+    return list;
+}
+
+void AutobotModel::setCurrentTestCase(const QString& testCaseName)
+{
+    autobot()->setCurrentTestCase(testCaseName.toStdString());
+}
+
+QString AutobotModel::currentTestCase() const
+{
+    return QString::fromStdString(autobot()->currentTestCase().val->name());
+}
+
+AbFilesModel* AutobotModel::files() const
+{
+    return m_files;
+}
+
+QString AutobotModel::status() const
+{
+    IAutobot::Status st = autobot()->status().val;
+    switch (st) {
+    case IAutobot::Status::Stoped: return "Stoped";
+    case IAutobot::Status::RunningAll: return "RunningAll";
+    case IAutobot::Status::RunningFile: return "RunningFile";
+    }
+    return "Unknown";
 }

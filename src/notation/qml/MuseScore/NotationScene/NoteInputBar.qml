@@ -10,10 +10,25 @@ Rectangle {
 
     property alias orientation: gridView.orientation
 
+    property alias keynav: keynavSub
+
     QtObject {
         id: privatesProperties
 
         property bool isHorizontal: orientation === Qt.Horizontal
+    }
+
+    KeyNavigationSubSection {
+        id: keynavSub
+        name: "NoteInputBar"
+    }
+
+    NoteInputBarModel {
+        id: noteInputModel
+    }
+
+    Component.onCompleted: {
+        noteInputModel.load()
     }
 
     GridViewSectional {
@@ -22,18 +37,22 @@ Rectangle {
 
         sectionRole: "sectionRole"
 
+        rowSpacing: 6
+        columnSpacing: 6
+
         cellWidth: 36
         cellHeight: cellWidth
 
         model: noteInputModel
 
         sectionDelegate: SeparatorLine {
-            orientation: gridView.orientation === Qt.Vertical ? Qt.Horizontal : Qt.Vertical
+            orientation: gridView.isHorizontal ? Qt.Vertical : Qt.Horizontal
             visible: itemIndex !== 0
         }
 
         itemDelegate: FlatButton {
             property var item: Boolean(itemModel) ? itemModel : null
+            property var hasSubitems: Boolean(item) && item.subitemsRole.length !== 0
 
             normalStateColor: Boolean(item) && item.checkedRole ? ui.theme.accentColor : "transparent"
 
@@ -42,11 +61,56 @@ Rectangle {
 
             iconFont: ui.theme.toolbarIconsFont
 
+            keynav.subsection: keynavSub
+            keynav.name: hint
+            keynav.order: Boolean(item) ? item.orderRole : 0
+
+            pressAndHoldInterval: 200
+
             width: gridView.cellWidth
             height: gridView.cellWidth
 
             onClicked: {
-                noteInputModel.handleAction(item.codeRole)
+                if (menuLoader.isMenuOpened() || (hasSubitems && !item.showSubitemsByPressAndHoldRole)) {
+                    menuLoader.toggleOpened(item.subitemsRole)
+                    return
+                }
+
+                Qt.callLater(noteInputModel.handleAction, item.codeRole)
+            }
+
+            onPressAndHold: {
+                if (menuLoader.isMenuOpened() || !hasSubitems) {
+                    return
+                }
+
+                menuLoader.toggleOpened(item.subitemsRole)
+            }
+
+            Canvas {
+                visible: item.showSubitemsByPressAndHoldRole
+
+                width: 4
+                height: 4
+
+                anchors.margins: 2
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+
+                onPaint: {
+                    const ctx = getContext("2d");
+                    ctx.fillStyle = ui.theme.fontPrimaryColor;
+                    ctx.moveTo(width, 0);
+                    ctx.lineTo(width, height);
+                    ctx.lineTo(0, height);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+
+            StyledMenuLoader {
+                id: menuLoader
+                onHandleAction: noteInputModel.handleAction(actionCode, actionIndex)
             }
         }
     }
@@ -56,20 +120,18 @@ Rectangle {
 
         anchors.margins: 8
 
+        width: gridView.cellWidth
+        height: gridView.cellHeight
+
         icon: IconCode.CONFIGURE
+        iconFont: ui.theme.toolbarIconsFont
         normalStateColor: "transparent"
+        keynav.subsection: keynavSub
+        keynav.order: 100
 
         onClicked: {
             api.launcher.open("musescore://notation/noteinputbar/customise")
         }
-    }
-
-    NoteInputBarModel {
-        id: noteInputModel
-    }
-
-    Component.onCompleted: {
-        noteInputModel.load()
     }
 
     states: [

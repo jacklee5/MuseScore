@@ -20,7 +20,17 @@
 
 using namespace mu::autobot;
 
-void AbScoreCloseStep::doRun(AbContext ctx)
+AbScoreCloseStep::AbScoreCloseStep(Delay delay)
+    : AbBaseStep(delay)
+{
+}
+
+std::string AbScoreCloseStep::name() const
+{
+    return "CloseScore";
+}
+
+void AbScoreCloseStep::doRun(IAbContextPtr ctx)
 {
     auto notation = context()->currentNotation();
 
@@ -30,6 +40,5 @@ void AbScoreCloseStep::doRun(AbContext ctx)
         notation->setOpened(false);
     }
 
-    ctx.ret = make_ret(Ret::Code::Ok);
-    doFinish(ctx);
+    doFinish(ctx, make_ret(Ret::Code::Ok));
 }

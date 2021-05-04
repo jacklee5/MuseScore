@@ -23,6 +23,11 @@
 
 static const std::string module_name("appshell");
 
+static const Settings::Key STARTUP_SESSION_TYPE(module_name, "application/startup/sessionStart");
+static const Settings::Key STARTUP_SCORE_PATH(module_name, "application/startup/startScore");
+
+static const Settings::Key CHECK_FOR_UPDATE_KEY(module_name, "application/checkForUpdate");
+
 static const std::string ONLINE_HANDBOOK_URL("https://musescore.org/redirect/help?tag=handbook&locale=");
 static const std::string ASK_FOR_HELP_URL("https://musescore.org/redirect/post/question?locale=");
 static const std::string BUG_REPORT_URL("https://musescore.org/redirect/post/bug-report?locale=");
@@ -32,10 +37,11 @@ static const std::string MUSICXML_LICENSE_URL("https://www.w3.org/community/abou
 static const std::string MUSICXML_LICENSE_DEED_URL("https://www.w3.org/community/about/agreements/cla-deed/");
 
 static const std::string UTM_MEDIUM_MENU("menu");
-static const std::string SYSTEM_LANGUAGE("system");
 
 static const Settings::Key NOTATION_NAVIGATOR_VISIBLE_KEY(module_name, "ui/application/startup/showNavigator");
 static const Settings::Key NOTATION_STATUSBAR_VISIBLE_KEY(module_name, "ui/application/showStatusBar");
+static const Settings::Key SPLASH_SCREEN_VISIBLE_KEY(module_name, "ui/application/startup/showSplashScreen");
+static const Settings::Key TOURS_VISIBLE_KEY(module_name, "ui/application/startup/showTours");
 
 using namespace mu::appshell;
 using namespace mu::notation;
@@ -43,12 +49,18 @@ using namespace mu::framework;
 
 void AppShellConfiguration::init()
 {
+    settings()->setDefaultValue(STARTUP_SESSION_TYPE, Val(static_cast<int>(StartupSessionType::StartEmpty)));
+    settings()->setDefaultValue(STARTUP_SCORE_PATH, Val(userScoresConfiguration()->myFirstScorePath().toStdString()));
+
+    settings()->setDefaultValue(CHECK_FOR_UPDATE_KEY, Val(isAppUpdatable()));
+
     settings()->setDefaultValue(NOTATION_NAVIGATOR_VISIBLE_KEY, Val(false));
     settings()->valueChanged(NOTATION_NAVIGATOR_VISIBLE_KEY).onReceive(nullptr, [this](const Val&) {
         m_notationNavigatorVisibleChanged.send(isNotationNavigatorVisible().val);
     });
 
     settings()->setDefaultValue(NOTATION_STATUSBAR_VISIBLE_KEY, Val(true));
+    settings()->setCanBeMannualyEdited(NOTATION_STATUSBAR_VISIBLE_KEY, true);
     settings()->valueChanged(NOTATION_STATUSBAR_VISIBLE_KEY).onReceive(nullptr, [this](const Val&) {
         m_notationStatusBarVisibleChanged.send(isNotationStatusBarVisible().val);
     });
@@ -58,6 +70,26 @@ void AppShellConfiguration::init()
     });
 }
 
+StartupSessionType AppShellConfiguration::startupSessionType() const
+{
+    return static_cast<StartupSessionType>(settings()->value(STARTUP_SESSION_TYPE).toInt());
+}
+
+void AppShellConfiguration::setStartupSessionType(StartupSessionType type)
+{
+    settings()->setValue(STARTUP_SESSION_TYPE, Val(static_cast<int>(type)));
+}
+
+mu::io::path AppShellConfiguration::startupScorePath() const
+{
+    return settings()->value(STARTUP_SCORE_PATH).toString();
+}
+
+void AppShellConfiguration::setStartupScorePath(const io::path& scorePath)
+{
+    settings()->setValue(STARTUP_SCORE_PATH, Val(scorePath.toStdString()));
+}
+
 bool AppShellConfiguration::isAppUpdatable() const
 {
 #ifdef APP_UPDATABLE
@@ -65,6 +97,16 @@ bool AppShellConfiguration::isAppUpdatable() const
 #else
     return false;
 #endif
+}
+
+bool AppShellConfiguration::needCheckForUpdate() const
+{
+    return settings()->value(CHECK_FOR_UPDATE_KEY).toBool();
+}
+
+void AppShellConfiguration::setNeedCheckForUpdate(bool needCheck)
+{
+    settings()->setValue(CHECK_FOR_UPDATE_KEY, Val(needCheck));
 }
 
 std::string AppShellConfiguration::handbookUrl() const
@@ -165,6 +207,41 @@ void AppShellConfiguration::setIsNotationNavigatorVisible(bool visible) const
     settings()->setValue(NOTATION_NAVIGATOR_VISIBLE_KEY, Val(visible));
 }
 
+bool AppShellConfiguration::needShowSplashScreen() const
+{
+    return settings()->value(SPLASH_SCREEN_VISIBLE_KEY).toBool();
+}
+
+void AppShellConfiguration::setNeedShowSplashScreen(bool show)
+{
+    settings()->setValue(SPLASH_SCREEN_VISIBLE_KEY, Val(show));
+}
+
+bool AppShellConfiguration::needShowTours() const
+{
+    return settings()->value(TOURS_VISIBLE_KEY).toBool();
+}
+
+void AppShellConfiguration::setNeedShowTours(bool show)
+{
+    settings()->setValue(TOURS_VISIBLE_KEY, Val(show));
+}
+
+void AppShellConfiguration::startEditSettings()
+{
+    settings()->beginTransaction();
+}
+
+void AppShellConfiguration::applySettings()
+{
+    settings()->commitTransaction();
+}
+
+void AppShellConfiguration::rollbackSettings()
+{
+    settings()->rollbackTransaction();
+}
+
 void AppShellConfiguration::revertToFactorySettings(bool keepDefaultSettings) const
 {
     settings()->reset(keepDefaultSettings);
@@ -184,12 +261,8 @@ std::string AppShellConfiguration::sha() const
 
 std::string AppShellConfiguration::currentLanguageCode() const
 {
-    std::string languageCode = languagesConfiguration()->currentLanguageCode().val.toStdString();
-    if (languageCode == SYSTEM_LANGUAGE) {
-        languageCode = QLocale::system().name().toStdString();
-    }
-
-    QLocale locale(QString::fromStdString(languageCode));
+    QString languageCode = languagesConfiguration()->currentLanguageCode().val;
+    QLocale locale(languageCode);
 
     return locale.bcp47Name().toStdString();
 }

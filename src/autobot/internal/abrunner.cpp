@@ -20,52 +20,76 @@
 
 #include <QTimer>
 
-#include "steps/abscoreloadstep.h"
-#include "steps/abscorezoom.h"
-#include "steps/abscoreclosestep.h"
+#include "log.h"
 
 using namespace mu::autobot;
 
-void AbRunner::init()
+void AbRunner::run(const ITestCasePtr& tc, const IAbContextPtr& ctx)
 {
-    m_steps = {
-        Step(new AbScoreLoadStep()),
-        Step(new AbScoreZoom(), 1000),
-        Step(new AbScoreCloseStep(), 1000)
-    };
-
-    for (Step& s : m_steps) {
-        s.step->finished().onReceive(this, [this](const AbContext& ctx) {
-            nextStep(ctx);
-        });
-    }
-}
-
-void AbRunner::run(const io::path& scorePath)
-{
-    AbContext ctx;
-    ctx.setVal<io::path>(AbContext::Key::ScoreFile, scorePath);
-
-    m_currentIndex = -1;
-    nextStep(ctx);
-}
-
-void AbRunner::nextStep(const AbContext& ctx)
-{
-    m_currentIndex += 1;
-    if (size_t(m_currentIndex) >= m_steps.size()) {
-        m_finished.send(ctx);
+    IF_ASSERT_FAILED(tc) {
         return;
     }
 
-    const Step& step = m_steps.at(m_currentIndex);
-    AbBaseStepPtr stepPtr = step.step;
-    QTimer::singleShot(step.delayMSec, [this, stepPtr, ctx]() {
-        stepPtr->make(ctx);
+    m_testCase = tc;
+    m_stepIndex = -1;
+
+    auto steps = m_testCase->steps();
+    for (ITestStepPtr& step : steps) {
+        step->finished().onReceive(this, [this](const IAbContextPtr& ctx) {
+            m_stepFinished.send(ctx);
+            nextStep(ctx);
+        });
+    }
+
+    nextStep(ctx);
+}
+
+int AbRunner::delayToMSec(ITestStep::Delay d) const
+{
+    switch (d) {
+    case ITestStep::Delay::Fast: return 10;
+    case ITestStep::Delay::Normal: return 500;
+    case ITestStep::Delay::Long: return 1000;
+    }
+    return 10;
+}
+
+void AbRunner::nextStep(const IAbContextPtr& ctx)
+{
+    m_stepIndex += 1;
+    if (size_t(m_stepIndex) >= m_testCase->steps().size()) {
+        doFinish(ctx);
+        return;
+    }
+
+    const ITestStepPtr& step = m_testCase->steps().at(m_stepIndex);
+    QTimer::singleShot(delayToMSec(step->delay()), [this, step, ctx]() {
+        ctx->addStep(step->name());
+        m_stepStarted.send(ctx);
+        step->make(ctx);
     });
 }
 
-mu::async::Channel<AbContext> AbRunner::finished() const
+void AbRunner::doFinish(const IAbContextPtr& ctx)
 {
-    return m_finished;
+    auto steps = m_testCase->steps();
+    for (ITestStepPtr& step : steps) {
+        step->finished().resetOnReceive(this);
+    }
+    m_allFinished.send(ctx);
+}
+
+mu::async::Channel<IAbContextPtr> AbRunner::stepStarted() const
+{
+    return m_stepStarted;
+}
+
+mu::async::Channel<IAbContextPtr> AbRunner::stepFinished() const
+{
+    return m_stepFinished;
+}
+
+mu::async::Channel<IAbContextPtr> AbRunner::allFinished() const
+{
+    return m_allFinished;
 }

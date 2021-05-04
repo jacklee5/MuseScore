@@ -20,27 +20,28 @@
 #ifndef MU_UI_MACOSPLATFORMTHEME_H
 #define MU_UI_MACOSPLATFORMTHEME_H
 
-#include "iplatformtheme.h"
+#include "internal/iplatformtheme.h"
 
 namespace mu::ui {
 class MacOSPlatformTheme : public IPlatformTheme
 {
 public:
-    MacOSPlatformTheme();
-    ~MacOSPlatformTheme();
-
-    void init() override;
+    void startListening() override;
+    void stopListening() override;
 
     bool isFollowSystemThemeAvailable() const override;
 
-    bool isDarkMode() const override;
-    async::Channel<bool> darkModeSwitched() const override;
+    ThemeCode themeCode() const override;
+    async::Channel<ThemeCode> themeCodeChanged() const override;
 
-    void setAppThemeDark(bool) override;
-    void styleWindow(QWidget*) override;
+    void applyPlatformStyleOnAppForTheme(ThemeCode themeCode) override;
+    void applyPlatformStyleOnWindowForTheme(QWidget* window, ThemeCode themeCode) override;
 
 private:
-    async::Channel<bool> m_darkModeSwitched;
+    bool isSystemDarkMode() const;
+    bool isSystemHighContrast() const;
+
+    async::Channel<ThemeCode> m_channel;
 };
 }
 

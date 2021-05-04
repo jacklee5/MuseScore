@@ -88,6 +88,8 @@ using HairpinType = Ms::HairpinType;
 using TextType = Ms::Tid;
 using TupletNumberType = Ms::TupletNumberType;
 using TupletBracketType = Ms::TupletBracketType;
+using GraceNoteType = Ms::NoteType;
+using BeamMode = Ms::Beam::Mode;
 
 using PageList = std::vector<const Page*>;
 using StaffList = QList<const Staff*>;
@@ -154,10 +156,11 @@ enum class NoteAddingMode
 
 enum class SaveMode
 {
-    Unknown,
+    Save,
     SaveAs,
     SaveCopy,
-    SaveSelection
+    SaveSelection,
+    SaveOnline
 };
 
 enum class ResettableValueType
@@ -166,6 +169,31 @@ enum class ResettableValueType
     BeamMode,
     ShapesAndPosition,
     TextStyleOverriders
+};
+
+enum class IntervalType
+{
+    Above,
+    Below
+};
+
+enum class TupletType
+{
+    Duplet,
+    Triplet,
+    Quadruplet,
+    Quintuplet,
+    Sextuplet,
+    Septuplet,
+    Octuplet,
+    Nonuplet
+};
+
+enum class PastingType {
+    Default,
+    Half,
+    Double,
+    Special
 };
 
 struct NoteInputState
@@ -184,6 +212,13 @@ enum class NoteFilter
     All,
     WithTie,
     WithSlur
+};
+
+enum class ZoomType {
+    Percentage,
+    PageWidth,
+    WholePage,
+    TwoPages
 };
 
 struct Meta
@@ -381,6 +416,15 @@ struct LoopBoundaries
     }
 };
 
+enum class ScoreConfigType
+{
+    ShowInvisibleElements,
+    ShowUnprintableElements,
+    ShowFrames,
+    ShowPageMargins,
+    MarkIrregularMeasures
+};
+
 struct ScoreConfig
 {
     bool isShowInvisibleElements = false;
@@ -412,6 +456,13 @@ struct MeasureBeat
     int maxMeasureIndex = 0;
     int beatIndex = 0;
     int maxBeatIndex = 0;
+};
+
+enum class BracketsType
+{
+    Brackets,
+    Braces,
+    Parentheses
 };
 
 static constexpr int MIN_NOTES_INTERVAL = -9;

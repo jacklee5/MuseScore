@@ -6,7 +6,7 @@ Item {
     id: root
 
     property alias iconModeEnum: _iconModeEnum
-    property int iconMode: Boolean(icon) ? iconModeEnum.left : iconModeEnum.hidden
+    property int iconMode: !iconImage.isEmpty ? iconModeEnum.left : iconModeEnum.hidden
     property int iconBackgroundSize: 20
     property alias icon: iconImage.iconCode
 
@@ -25,6 +25,37 @@ Item {
 
     implicitHeight: 30
     implicitWidth: parent.width
+
+    function increment() {
+        var value = root.isIndeterminate ? 0.0 : currentValue
+        var newValue = value + step
+
+        if (newValue > root.maxValue)
+            return
+
+        root.valueEdited(+newValue.toFixed(decimals))
+    }
+
+    function decrement() {
+        var value = root.isIndeterminate ? 0.0 : currentValue
+        var newValue = value - step
+
+        if (newValue < root.minValue)
+            return
+
+        root.valueEdited(+newValue.toFixed(decimals))
+    }
+
+    Keys.onPressed: {
+        switch (event.key) {
+        case Qt.Key_Up:
+            increment()
+            break
+        case Qt.Key_Down:
+            decrement()
+            break
+        }
+    }
 
     QtObject {
         id: _iconModeEnum
@@ -60,11 +91,20 @@ Item {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
 
-        validator: DoubleInputValidator {
+        DoubleInputValidator {
+            id: doubleInputValidator
             top: maxValue
             bottom: minValue
             decimal: decimals
         }
+
+        IntInputValidator {
+            id: intInputValidator
+            top: maxValue
+            bottom: minValue
+        }
+
+        validator: decimals > 0 ? doubleInputValidator : intInputValidator
 
         ValueAdjustControl {
             id: valueAdjustControl
@@ -74,25 +114,9 @@ Item {
 
             icon: IconCode.SMALL_ARROW_DOWN
 
-            onIncreaseButtonClicked: {
-                var value = root.isIndeterminate ? 0.0 : currentValue
-                var newValue = value + step
+            onIncreaseButtonClicked: increment()
 
-                if (newValue > root.maxValue)
-                    return
-
-                root.valueEdited(+newValue.toFixed(decimals))
-            }
-
-            onDecreaseButtonClicked: {
-                var value = root.isIndeterminate ? 0.0 : currentValue
-                var newValue = value - step
-
-                if (newValue < root.minValue)
-                    return
-
-                root.valueEdited(+newValue.toFixed(decimals))
-            }
+            onDecreaseButtonClicked: decrement()
         }
 
         onCurrentTextEdited: {

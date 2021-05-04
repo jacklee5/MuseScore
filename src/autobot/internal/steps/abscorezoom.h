@@ -29,10 +29,16 @@ class AbScoreZoom : public AbBaseStep
 {
     INJECT(autobot, actions::IActionsDispatcher, dispatcher)
 public:
-    AbScoreZoom() = default;
+    AbScoreZoom(int percent, ITestStep::Delay delay = ITestStep::Delay::Fast);
+
+    std::string name() const override;
 
 protected:
-    void doRun(AbContext ctx) override;
+    void doRun(IAbContextPtr ctx) override;
+
+private:
+
+    int m_percent = 100;
 };
 }
 

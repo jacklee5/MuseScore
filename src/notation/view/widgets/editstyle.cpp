@@ -1431,10 +1431,10 @@ void EditStyle::setValues()
 
 void EditStyle::selectChordDescriptionFile()
 {
-    io::path dir = configuration()->stylesDirPath();
-    QString filter = mu::qtrc("notation", "MuseScore Styles") + " (*.mss)";
+    io::path dir = configuration()->stylesPath().val;
+    QString filter = qtrc("notation", "MuseScore Styles") + " (*.mss)";
 
-    mu::io::path path = interactive()->selectOpeningFile(mu::qtrc("notation", "Load Style"), dir, filter);
+    mu::io::path path = interactive()->selectOpeningFile(qtrc("notation", "Load Style"), dir, filter);
     if (path.empty()) {
         return;
     }
@@ -1579,8 +1579,6 @@ void EditStyle::enableStyleWidget(const StyleId idx, bool enable)
 void EditStyle::enableVerticalSpreadClicked(bool checked)
 {
     disableVerticalSpread->setChecked(!checked);
-    NOT_IMPLEMENTED;
-//    cs->setLayoutAll(); // TODO
 }
 
 //---------------------------------------------------------
@@ -1590,9 +1588,7 @@ void EditStyle::enableVerticalSpreadClicked(bool checked)
 void EditStyle::disableVerticalSpreadClicked(bool checked)
 {
     setStyleValue(StyleId::enableVerticalSpread, !checked);
-    NOT_IMPLEMENTED;
     enableVerticalSpread->setChecked(!checked);
-//    cs->setLayoutAll(); // TODO
 }
 
 //---------------------------------------------------------

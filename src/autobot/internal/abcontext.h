@@ -19,60 +19,36 @@
 #ifndef MU_AUTOBOT_ABCONTEXT_H
 #define MU_AUTOBOT_ABCONTEXT_H
 
-#include <any>
-#include <map>
-
-#include "ret.h"
+#include "../iabcontext.h"
 
 namespace mu::autobot {
-struct AbContext
+struct AbContext : public IAbContext
 {
-    enum class Key {
-        Undefined = 0,
-        ScoreFile
-    };
+public:
+    AbContext() = default;
 
-    Ret ret;
+    const std::vector<StepContext>& steps() const override;
+    const StepContext& step(const std::string& name) const override;
 
-    template<typename T>
-    void setVal(const Key& key, const T& v)
-    {
-        IVal* p = new Val<T>(v);
-        m_vals[key] = std::shared_ptr<IVal>(p);
-    }
+    void setGlobalVal(const Key& key, const Val& val) override;
+    Val globalVal(const Key& key) const override;
 
-    template<typename T>
-    T val(const Key& key, T def = T()) const
-    {
-        auto it = m_vals.find(key);
-        if (it == m_vals.cend()) {
-            return def;
-        }
-        IVal* p = it->second.get();
-        Val<T>* d = reinterpret_cast<Val<T>*>(p);
-        return d->val;
-    }
+    void addStep(const std::string& name) override;
+    const StepContext& currentStep() const override;
+    void setStepVal(const Key& key, const Val& val) override;
+    void setStepRet(const Ret& ret) override;
 
-    void clear()
-    {
-        m_vals.clear();
-        ret = Ret();
-    }
+    Val stepVal(const std::string& stepName, const Key& key) const override;
+    Ret stepRet(const std::string& stepName) const override;
+
+    Val findVal(const Key& key) const override;
+
+    Ret completeRet() const override;
 
 private:
 
-    struct IVal {
-        virtual ~IVal() = default;
-    };
-
-    template<typename T>
-    struct Val : public IVal {
-        T val;
-        Val(const T& v)
-            : IVal(), val(v) {}
-    };
-
-    std::map<Key, std::shared_ptr<IVal> > m_vals;
+    std::map<Key, Val > m_globalVals;
+    std::vector<StepContext> m_steps;
 };
 }
 #endif // MU_AUTOBOT_ABCONTEXT_H

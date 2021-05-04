@@ -24,6 +24,7 @@
 #include "eventswatcher.h"
 
 using namespace mu::dock;
+using namespace mu::ui;
 
 static const qreal TOOLBAR_GRIP_WIDTH(32);
 static const qreal TOOLBAR_GRIP_HEIGHT(36);
@@ -46,10 +47,6 @@ DockToolBar::DockToolBar(QQuickItem* parent)
         }
     });
 
-    connect(m_tool.bar, &QToolBar::visibilityChanged, [this](bool) {
-        setVisible(m_tool.bar->isVisible());
-    });
-
     connect(m_tool.bar, &QToolBar::orientationChanged, [this](int orientation) {
         emit orientationChanged(orientation);
     });
@@ -57,6 +54,8 @@ DockToolBar::DockToolBar(QQuickItem* parent)
     connect(m_tool.bar, &QToolBar::topLevelChanged, [this](bool floating) {
         setFloating(floating);
     });
+
+    connect(m_tool.bar, &QToolBar::windowTitleChanged, this, &DockToolBar::titleChanged);
 
     m_eventsWatcher = new EventsWatcher(this);
     m_tool.bar->installEventFilter(m_eventsWatcher);
@@ -86,10 +85,7 @@ void DockToolBar::onComponentCompleted()
 
 void DockToolBar::updateStyle()
 {
-    QString theme = uiConfiguration()->actualThemeType() == ui::IUiConfiguration::ThemeType::LIGHT_THEME
-                    ? "light"
-                    : "dark";
-    toolBar()->setStyleSheet(TOOLBAR_QSS.arg(theme, color().name()));
+    toolBar()->setStyleSheet(TOOLBAR_QSS.arg(QString::fromStdString(uiConfiguration()->currentTheme().codeKey), color().name()));
 }
 
 void DockToolBar::onWidgetEvent(QEvent* event)
@@ -172,6 +168,11 @@ bool DockToolBar::visible() const
     return toolBar()->isVisible();
 }
 
+QString DockToolBar::title() const
+{
+    return toolBar()->windowTitle();
+}
+
 void DockToolBar::setMinimumHeight(int minimumHeight)
 {
     if (m_minimumHeight == minimumHeight) {
@@ -237,4 +238,13 @@ void DockToolBar::setVisible(bool visible)
 
     m_visible = visible;
     emit visibleEdited(m_visible);
+}
+
+void DockToolBar::setTitle(const QString& title)
+{
+    if (title == this->title()) {
+        return;
+    }
+
+    toolBar()->setWindowTitle(title);
 }

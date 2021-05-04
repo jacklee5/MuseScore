@@ -37,16 +37,31 @@ public:
     virtual ~INotationConfiguration() = default;
 
     virtual QColor backgroundColor() const = 0;
-    virtual async::Channel<QColor> backgroundColorChanged() const = 0;
+    virtual void setBackgroundColor(const QColor& color) = 0;
 
-    virtual QColor pageColor() const = 0;
-    virtual QColor borderColor() const = 0;
-    virtual int borderWidth() const = 0;
+    virtual io::path backgroundWallpaperPath() const = 0;
+    virtual void setBackgroundWallpaperPath(const io::path& path) = 0;
+
+    virtual bool backgroundUseColor() const = 0;
+    virtual void setBackgroundUseColor(bool value) = 0;
+
+    virtual async::Notification backgroundChanged() const = 0;
+
+    virtual QColor foregroundColor() const = 0;
+    virtual void setForegroundColor(const QColor& color) = 0;
+
+    virtual io::path foregroundWallpaperPath() const = 0;
+    virtual void setForegroundWallpaperPath(const io::path& path) = 0;
 
     virtual bool foregroundUseColor() const = 0;
-    virtual QColor foregroundColor() const = 0;
-    virtual async::Channel<QColor> foregroundColorChanged() const = 0;
-    virtual io::path foregroundWallpaper() const = 0;
+    virtual void setForegroundUseColor(bool value) = 0;
+
+    virtual async::Notification foregroundChanged() const = 0;
+
+    virtual io::path wallpapersDefaultDirPath() const = 0;
+
+    virtual QColor borderColor() const = 0;
+    virtual int borderWidth() const = 0;
 
     virtual QColor anchorLineColor() const = 0;
 
@@ -55,18 +70,37 @@ public:
     virtual int cursorOpacity() const = 0;
 
     virtual QColor selectionColor(int voiceIndex = 0) const = 0;
+    virtual void setSelectionColor(int voiceIndex, const QColor& color) = 0;
+    virtual async::Channel<int> selectionColorChanged() = 0;
 
     virtual QColor layoutBreakColor() const = 0;
 
     virtual int selectionProximity() const = 0;
+    virtual void setSelectionProximity(int proxymity) = 0;
+
+    virtual ZoomType defaultZoomType() const = 0;
+    virtual void setDefaultZoomType(ZoomType zoomType) = 0;
+
+    virtual int defaultZoom() const = 0;
+    virtual void setDefaultZoom(int zoomPercentage) = 0;
 
     virtual ValCh<int> currentZoom() const = 0;
     virtual void setCurrentZoom(int zoomPercentage) = 0;
 
+    virtual int mouseZoomPrecision() const = 0;
+    virtual void setMouseZoomPrecision(int precision) = 0;
+
     virtual std::string fontFamily() const = 0;
     virtual int fontSize() const = 0;
 
-    virtual io::path stylesDirPath() const = 0;
+    virtual ValCh<io::path> stylesPath() const = 0;
+    virtual void setStylesPath(const io::path& path) = 0;
+
+    virtual io::path defaultStyleFilePath() const = 0;
+    virtual void setDefaultStyleFilePath(const io::path& path) = 0;
+
+    virtual io::path partStyleFilePath() const = 0;
+    virtual void setPartStyleFilePath(const io::path& path) = 0;
 
     virtual bool isMidiInputEnabled() const = 0;
     virtual void setIsMidiInputEnabled(bool enabled) = 0;
@@ -87,12 +121,28 @@ public:
     virtual float notationScaling() const = 0;
 
     virtual std::string notationRevision() const = 0;
+    virtual int notationDivision() const = 0;
 
     virtual std::vector<std::string> toolbarActions(const std::string& toolbarName) const = 0;
     virtual void setToolbarActions(const std::string& toolbarName, const std::vector<std::string>& actions) = 0;
 
     virtual ValCh<framework::Orientation> canvasOrientation() const = 0;
     virtual void setCanvasOrientation(framework::Orientation orientation) = 0;
+
+    virtual bool isLimitCanvasScrollArea() const = 0;
+    virtual void setIsLimitCanvasScrollArea(bool limited) = 0;
+
+    virtual bool advanceToNextNoteOnKeyRelease() const = 0;
+    virtual void setAdvanceToNextNoteOnKeyRelease(bool value) = 0;
+
+    virtual bool colorNotesOusideOfUsablePitchRange() const = 0;
+    virtual void setColorNotesOusideOfUsablePitchRange(bool value) = 0;
+
+    virtual int delayBetweenNotesInRealTimeModeMilliseconds() const = 0;
+    virtual void setDelayBetweenNotesInRealTimeModeMilliseconds(int delayMs) = 0;
+
+    virtual int notePlayDurationMilliseconds() const = 0;
+    virtual void setNotePlayDurationMilliseconds(int durationMs) = 0;
 };
 }
 

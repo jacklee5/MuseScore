@@ -56,6 +56,7 @@ public:
         Key key;
         Val value;
         Val defaultValue;
+        bool canBeMannualyEdited = false;
 
         bool isNull() const { return key.isNull(); }
     };
@@ -74,6 +75,11 @@ public:
 
     void setValue(const Key& key, const Val& value);
     void setDefaultValue(const Key& key, const Val& value);
+    void setCanBeMannualyEdited(const Settings::Key& key, bool canBeMannualyEdited);
+
+    void beginTransaction();
+    void commitTransaction();
+    void rollbackTransaction();
 
     async::Channel<Val> valueChanged(const Key& key) const;
 
@@ -84,6 +90,8 @@ private:
     Item& findItem(const Key& key) const;
     async::Channel<Val>& findChannel(const Key& key) const;
 
+    void insertNewItem(const Key& key, const Val& value);
+
     Items readItems() const;
     void writeValue(const Key& key, const Val& value);
 
@@ -91,6 +99,8 @@ private:
 
     QSettings* m_settings = nullptr;
     mutable Items m_items;
+    mutable Items m_localSettings;
+    mutable bool m_isTransactionStarted = false;
     mutable std::map<Key, async::Channel<Val> > m_channels;
 };
 

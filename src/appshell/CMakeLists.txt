@@ -29,14 +29,13 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/appshellmodule.h
     ${CMAKE_CURRENT_LIST_DIR}/appshell.cpp
     ${CMAKE_CURRENT_LIST_DIR}/appshell.h
-    ${CMAKE_CURRENT_LIST_DIR}/iapplicationactioncontroller.h
     ${CMAKE_CURRENT_LIST_DIR}/inotationpagestate.h
     ${CMAKE_CURRENT_LIST_DIR}/commandlinecontroller.cpp
     ${CMAKE_CURRENT_LIST_DIR}/commandlinecontroller.h
     ${CMAKE_CURRENT_LIST_DIR}/iappshellconfiguration.h
     ${CMAKE_CURRENT_LIST_DIR}/appshelltypes.h
-    ${CMAKE_CURRENT_LIST_DIR}/internal/applicationactions.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/internal/applicationactions.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/applicationuiactions.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/applicationuiactions.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/appshellconfiguration.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/appshellconfiguration.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/applicationactioncontroller.cpp
@@ -45,14 +44,44 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/internal/appshellconfiguration.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/notationpagestate.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/notationpagestate.h
-    ${CMAKE_CURRENT_LIST_DIR}/view/settings/settingslistmodel.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/view/settings/settingslistmodel.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/devtools/settingslistmodel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/devtools/settingslistmodel.h
     ${CMAKE_CURRENT_LIST_DIR}/view/appmenumodel.cpp
     ${CMAKE_CURRENT_LIST_DIR}/view/appmenumodel.h
     ${CMAKE_CURRENT_LIST_DIR}/view/notationpagemodel.cpp
     ${CMAKE_CURRENT_LIST_DIR}/view/notationpagemodel.h
     ${CMAKE_CURRENT_LIST_DIR}/view/aboutmodel.cpp
     ${CMAKE_CURRENT_LIST_DIR}/view/aboutmodel.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/startupmodel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/startupmodel.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/preferencesmodel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/preferencesmodel.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/preferencepageitem.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/preferencepageitem.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/folderspreferencesmodel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/folderspreferencesmodel.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/canvaspreferencesmodel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/canvaspreferencesmodel.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/generalpreferencesmodel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/generalpreferencesmodel.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/updatepreferencesmodel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/updatepreferencesmodel.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/appearancepreferencesmodel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/appearancepreferencesmodel.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/programmestartpreferencesmodel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/programmestartpreferencesmodel.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/noteinputpreferencesmodel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/noteinputpreferencesmodel.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/advancedpreferencesmodel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/advancedpreferencesmodel.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/scorepreferencesmodel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/scorepreferencesmodel.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/importpreferencesmodel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/importpreferencesmodel.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/iopreferencesmodel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/iopreferencesmodel.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/commonaudioapiconfigurationmodel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/preferences/commonaudioapiconfigurationmodel.h
     ${DOCKWINDOW_SRC}
     )
 
@@ -61,5 +90,11 @@ set(MODULE_LINK
     ui
     )
 
-include(${PROJECT_SOURCE_DIR}/build/module.cmake)
+if (KDAB_DOCKWIDGETS)
+    set(MODULE_LINK
+        ${MODULE_LINK}
+        kddockwidgets
+        )
+endif(KDAB_DOCKWIDGETS)
 
+include(${PROJECT_SOURCE_DIR}/build/module.cmake)

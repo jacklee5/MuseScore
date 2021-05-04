@@ -1,18 +1,22 @@
-import QtQuick 2.5
+import QtQuick 2.15
 
 import MuseScore.Ui 1.0
 
-Item {
+FocusableControl {
     id: root
 
     property string hint
 
     property bool isSelected: false
-    property alias radius: background.radius
+    property alias radius: root.background.radius
+
+    property color normalStateColor: "transparent"
+    property color hoveredStateColor: privateProperties.defaultColor
+    property color pressedStateColor: privateProperties.defaultColor
 
     signal clicked()
     signal doubleClicked()
-    signal hovered()
+    signal hovered(var isHovered, var mouseX, int mouseY)
 
     implicitHeight: 30
     implicitWidth: Boolean(ListView.view) ? ListView.view.width : 30
@@ -20,14 +24,33 @@ Item {
     Accessible.selectable: true
     Accessible.selected: isSelected
 
-    Rectangle {
-        id: background
+    background.color: normalStateColor
 
-        anchors.fill: parent
+    mouseArea.hoverEnabled: root.visible
+    mouseArea.onHoveredChanged: root.hovered(mouseArea.containsMouse, mouseArea.mouseX, mouseArea.mouseY)
 
-        color: "transparent"
-        opacity: root.enabled ? 1 : ui.theme.itemOpacityDisabled
+    mouseArea.onClicked: root.clicked()
+    mouseArea.onDoubleClicked: root.doubleClicked()
+
+    mouseArea.onContainsMouseChanged: {
+        if (!Boolean(root.hint)) {
+            return
+        }
+
+        if (mouseArea.containsMouse) {
+            ui.tooltip.show(this, root.hint)
+        } else {
+            ui.tooltip.hide(this)
+        }
     }
+
+    QtObject {
+        id: privateProperties
+
+        property color defaultColor: ui.theme.buttonColor
+    }
+
+    background.opacity: root.enabled ? 1 : ui.theme.itemOpacityDisabled
 
     states: [
         State {
@@ -35,9 +58,9 @@ Item {
             when: mouseArea.containsMouse && !mouseArea.pressed && !root.isSelected
 
             PropertyChanges {
-                target: background
+                target: root.background
                 opacity: ui.theme.buttonOpacityHover
-                color: ui.theme.buttonColor
+                color: hoveredStateColor
             }
         },
 
@@ -46,9 +69,9 @@ Item {
             when: mouseArea.pressed && !root.isSelected
 
             PropertyChanges {
-                target: background
+                target: root.background
                 opacity: ui.theme.buttonOpacityHit
-                color: ui.theme.buttonColor
+                color: pressedStateColor
             }
         },
 
@@ -57,38 +80,10 @@ Item {
             when: root.isSelected
 
             PropertyChanges {
-                target: background
+                target: root.background
                 opacity: ui.theme.accentOpacityHit
                 color: ui.theme.accentColor
             }
         }
     ]
-
-    MouseArea {
-        id: mouseArea
-
-        anchors.fill: parent
-
-        hoverEnabled: root.visible
-
-        onClicked: {
-            root.clicked()
-        }
-
-        onDoubleClicked: {
-            root.doubleClicked()
-        }
-
-        onContainsMouseChanged: {
-            if (!Boolean(root.hint)) {
-                return
-            }
-
-            if (containsMouse) {
-                ui.tooltip.show(this, root.hint)
-            } else {
-                ui.tooltip.hide(this)
-            }
-        }
-    }
 }

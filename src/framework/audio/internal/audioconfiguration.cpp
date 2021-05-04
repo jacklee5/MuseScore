@@ -34,9 +34,12 @@ using namespace mu::audio;
 using namespace mu::audio::synth;
 
 //TODO: add other setting: audio device etc
+static const Settings::Key AUDIO_API_KEY("audio", "io/audioApi");
 static const Settings::Key AUDIO_BUFFER_SIZE("audio", "driver_buffer");
 
-static const Settings::Key MY_SOUNDFONTS("midi", "application/paths/mySoundfonts");
+static const Settings::Key USER_SOUNDFONTS_PATH("midi", "application/paths/mySoundfonts");
+
+static const Settings::Key SHOW_CONTROLS_IN_MIXER("midi", "io/midi/showControlsInMixer");
 
 //! FIXME Temporary for tests
 static const std::string DEFAULT_FLUID_SOUNDFONT = "MuseScore_General.sf3";     // "GeneralUser GS v1.471.sf2"; // "MuseScore_General.sf3";
@@ -51,6 +54,31 @@ void AudioConfiguration::init()
     defaultBufferSize = 1024;
 #endif
     settings()->setDefaultValue(AUDIO_BUFFER_SIZE, Val(defaultBufferSize));
+
+    settings()->setDefaultValue(SHOW_CONTROLS_IN_MIXER, Val(true));
+    settings()->setDefaultValue(AUDIO_API_KEY, Val("Core Audio"));
+}
+
+std::vector<std::string> AudioConfiguration::availableAudioApiList() const
+{
+    std::vector<std::string> names {
+        "Core Audio",
+        "ALSA Audio",
+        "PulseAudio",
+        "JACK Audio Server"
+    };
+
+    return names;
+}
+
+std::string AudioConfiguration::currentAudioApi() const
+{
+    return settings()->value(AUDIO_API_KEY).toString();
+}
+
+void AudioConfiguration::setCurrentAudioApi(const std::string& name)
+{
+    settings()->setValue(AUDIO_API_KEY, Val(name));
 }
 
 unsigned int AudioConfiguration::driverBufferSize() const
@@ -60,7 +88,7 @@ unsigned int AudioConfiguration::driverBufferSize() const
 
 std::vector<io::path> AudioConfiguration::soundFontPaths() const
 {
-    std::string pathsStr = settings()->value(MY_SOUNDFONTS).toString();
+    std::string pathsStr = settings()->value(USER_SOUNDFONTS_PATH).toString();
     std::vector<io::path> paths = io::path::pathsFromString(pathsStr, ";");
     paths.push_back(globalConfiguration()->sharePath());
 
@@ -69,6 +97,16 @@ std::vector<io::path> AudioConfiguration::soundFontPaths() const
     //QStringList extensionsDir = Ms::Extension::getDirectoriesByType(Ms::Extension::soundfontsDir);
 
     return paths;
+}
+
+bool AudioConfiguration::isShowControlsInMixer() const
+{
+    return settings()->value(SHOW_CONTROLS_IN_MIXER).toBool();
+}
+
+void AudioConfiguration::setIsShowControlsInMixer(bool show)
+{
+    settings()->setValue(SHOW_CONTROLS_IN_MIXER, Val(show));
 }
 
 const SynthesizerState& AudioConfiguration::defaultSynthesizerState() const

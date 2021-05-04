@@ -6,11 +6,13 @@ RadioButton {
 
     default property Component contentComponent
 
-    implicitHeight: 30
+    implicitHeight: 20
     implicitWidth: ListView.view ? (ListView.view.width - (ListView.view.spacing * (ListView.view.count - 1))) / ListView.view.count
                                  : 30
+    spacing: 6
+    padding: 0
 
-    spacing: 30
+    font: ui.theme.bodyFont
 
     hoverEnabled: true
 
@@ -23,13 +25,23 @@ RadioButton {
 
             anchors.fill: parent
 
-            sourceComponent: contentComponent
+            sourceComponent: Boolean(contentComponent) ? contentComponent : textLabel
+
+            Component {
+                id: textLabel
+
+                StyledTextLabel {
+                    text: root.text
+                    font: root.font
+                    horizontalAlignment: Qt.AlignLeft
+                }
+            }
         }
     }
 
     indicator: Item {
         x: root.leftPadding
-        y: parent.height / 2 - height / 2
+        y: Boolean(parent) ? parent.height / 2 - height / 2 : 0
         implicitWidth: 20
         implicitHeight: implicitWidth
 

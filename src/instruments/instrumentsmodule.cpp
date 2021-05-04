@@ -27,21 +27,22 @@
 #include "internal/instrumentsrepository.h"
 #include "internal/instrumentsconfiguration.h"
 #include "internal/selectinstrumentscenario.h"
-#include "internal/instrumentsactions.h"
+#include "internal/instrumentsuiactions.h"
 
 #include "view/instrumentpaneltreemodel.h"
 #include "view/instrumentlistmodel.h"
 #include "view/instrumentsettingsmodel.h"
 #include "view/staffsettingsmodel.h"
 #include "ui/iinteractiveuriregister.h"
+#include "ui/iuiactionsregister.h"
 #include "instrumentstypes.h"
-#include "actions/iactionsregister.h"
 
 using namespace mu::instruments;
 using namespace mu::framework;
 using namespace mu::ui;
 
 static InstrumentsRepository* m_instrumentsRepository = new InstrumentsRepository();
+static std::shared_ptr<InstrumentsConfiguration> s_configuration = std::make_shared<InstrumentsConfiguration>();
 
 static void instruments_init_qrc()
 {
@@ -55,7 +56,7 @@ std::string InstrumentsModule::moduleName() const
 
 void InstrumentsModule::registerExports()
 {
-    ioc()->registerExport<IInstrumentsConfiguration>(moduleName(), new InstrumentsConfiguration());
+    ioc()->registerExport<IInstrumentsConfiguration>(moduleName(), s_configuration);
     ioc()->registerExport<IInstrumentsRepository>(moduleName(), m_instrumentsRepository);
     ioc()->registerExport<IInstrumentsReader>(moduleName(), new InstrumentsReader());
     ioc()->registerExport<ISelectInstrumentsScenario>(moduleName(), new SelectInstrumentsScenario());
@@ -63,9 +64,9 @@ void InstrumentsModule::registerExports()
 
 void InstrumentsModule::resolveImports()
 {
-    auto ar = framework::ioc()->resolve<actions::IActionsRegister>(moduleName());
+    auto ar = framework::ioc()->resolve<ui::IUiActionsRegister>(moduleName());
     if (ar) {
-        ar->reg(std::make_shared<InstrumentsActions>());
+        ar->reg(std::make_shared<InstrumentsUiActions>());
     }
 
     auto ir = ioc()->resolve<IInteractiveUriRegister>(moduleName());
@@ -97,5 +98,6 @@ void InstrumentsModule::registerUiTypes()
 
 void InstrumentsModule::onInit(const IApplication::RunMode&)
 {
+    s_configuration->init();
     m_instrumentsRepository->init();
 }

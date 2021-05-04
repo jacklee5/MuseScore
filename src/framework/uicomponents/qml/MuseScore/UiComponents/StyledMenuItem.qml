@@ -1,89 +1,168 @@
-import QtQuick 2.0
-import QtQuick.Controls 2.12
-import QtQuick.Layouts 1.3
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import QtQuick.Layouts 1.15
 
+import MuseScore.UiComponents 1.0
 import MuseScore.Ui 1.0
 
-MenuItem {
+ListItemBlank {
     id: root
 
-    implicitHeight: 30
-    implicitWidth: 220
+    hoveredStateColor: ui.theme.accentColor
+    pressedStateColor: ui.theme.accentColor
+    enabled: Boolean(modelData) && Boolean(modelData.enabled)
 
-    property var hintIcon: checkable && checked ? IconCode.TICK : IconCode.NONE
-    property string shortcut: ""
+    isSelected: Boolean(privateProperties.showedSubMenu) || (privateProperties.hasIcon && privateProperties.isSelectable && privateProperties.isSelected)
 
-    background: Rectangle {
-        id: background
+    property var modelData
 
-        anchors.fill: parent
-
-        color: "transparent"
-        opacity: 1
-
-        states: [
-            State {
-                name: "HOVERED"
-                when: root.hovered && !root.pressed
-
-                PropertyChanges {
-                    target: background
-                    color: ui.theme.accentColor
-                    opacity: ui.theme.buttonOpacityHover
-                }
-            },
-
-            State {
-                name: "PRESSED"
-                when: root.pressed
-
-                PropertyChanges {
-                    target: background
-                    color: ui.theme.accentColor
-                    opacity: ui.theme.buttonOpacityHit
-                }
-            }
-        ]
+    enum IconAndCheckMarkMode {
+        None,
+        ShowOne,
+        ShowBoth
     }
 
-    indicator: Item {}
+    property int iconAndCheckMarkMode: StyledMenuItem.ShowOne
+    property bool reserveSpaceForShortcutOrSubmenuIndicator: privateProperties.hasShortcut || privateProperties.hasSubMenu
 
-    contentItem: RowLayout {
-        id: contentRow
+    signal subMenuShowed()
+    signal subMenuClosed()
 
-        implicitHeight: root.implicitHeight
-        implicitWidth: root.implicitWidth
+    signal handleAction(string actionCode, int actionIndex)
 
-        spacing: 0
+    QtObject {
+        id: privateProperties
 
-        Item {
-            readonly property int size: 16
+        property bool hasShortcut: Boolean(modelData) && Boolean(modelData.shortcut)
 
-            Layout.preferredWidth: size
-            Layout.preferredHeight: size
-            Layout.leftMargin: 6
-            Layout.rightMargin: 10
+        property bool hasSubMenu: Boolean(modelData) && Boolean(modelData.subitems) && modelData.subitems.length > 0
+        property var showedSubMenu: undefined
 
-            StyledIconLabel {
-                iconCode: root.hintIcon
+        property bool isCheckable: Boolean(modelData) && Boolean(modelData.checkable)
+        property bool isChecked: isCheckable && Boolean(modelData.checked)
+
+        property bool isSelectable: Boolean(modelData) && Boolean(modelData.selectable)
+        property bool isSelected: isSelectable && Boolean(modelData.selected)
+
+        property bool hasIcon: Boolean(modelData) && Boolean(modelData.icon)
+
+        function showSubMenu() {
+            if (privateProperties.showedSubMenu) {
+                return
             }
+
+            var menuComponent = Qt.createComponent("StyledMenu.qml");
+            var menu = menuComponent.createObject(root)
+            menu.positionDisplacementX = root.width
+            menu.positionDisplacementY = 0
+
+            menu.model = modelData.subitems
+
+            menu.handleAction.connect(function(actionCode, actionIndex) {
+                Qt.callLater(root.handleAction, actionCode, actionIndex)
+                menu.close()
+            })
+
+            menu.closed.connect(function() {
+                privateProperties.showedSubMenu = undefined
+                menu.destroy()
+                subMenuClosed()
+            })
+
+            subMenuShowed()
+
+            privateProperties.showedSubMenu = menu
+            menu.toggleOpened()
+        }
+    }
+
+    RowLayout {
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.left: parent.left
+        anchors.leftMargin: root.iconAndCheckMarkMode === StyledMenuItem.None ? 24 : 12
+        anchors.right: parent.right
+        anchors.rightMargin: 18
+
+        spacing: 12
+
+        StyledIconLabel {
+            Layout.alignment: Qt.AlignLeft
+            width: 16
+            iconCode: {
+                if (root.iconAndCheckMarkMode !== StyledMenuItem.ShowBoth && privateProperties.hasIcon) {
+                    return privateProperties.hasIcon ? modelData.icon : IconCode.NONE
+                } else if (privateProperties.isCheckable) {
+                    return privateProperties.isChecked ? IconCode.TICK_RIGHT_ANGLE : IconCode.NONE
+                } else  if (privateProperties.isSelectable) {
+                    return privateProperties.isSelected ? IconCode.TICK_RIGHT_ANGLE : IconCode.NONE
+                }
+
+                return IconCode.NONE
+            }
+            visible: !isEmpty || root.iconAndCheckMarkMode !== StyledMenuItem.None
+        }
+
+        StyledIconLabel {
+            Layout.alignment: Qt.AlignLeft
+            width: 16
+            iconCode: privateProperties.hasIcon ? modelData.icon : IconCode.NONE
+            visible: root.iconAndCheckMarkMode === StyledMenuItem.ShowBoth
         }
 
         StyledTextLabel {
             Layout.fillWidth: true
-            Layout.fillHeight: true
-
-            text: root.text
+            text: Boolean(modelData) && Boolean(modelData.title) ? modelData.title : ""
             horizontalAlignment: Text.AlignLeft
         }
 
         StyledTextLabel {
+            id: shortcutLabel
             Layout.alignment: Qt.AlignRight
-            Layout.rightMargin: 14
-
-            text: root.shortcut
-
-            visible: Boolean(text)
+            text: privateProperties.hasShortcut ? modelData.shortcut : ""
+            horizontalAlignment: Text.AlignRight
+            visible: !isEmpty || (root.reserveSpaceForShortcutOrSubmenuIndicator)
         }
+
+        StyledIconLabel {
+            id: submenuIndicator
+            Layout.alignment: Qt.AlignRight
+            width: 16
+            iconCode: privateProperties.hasSubMenu ? IconCode.SMALL_ARROW_RIGHT : IconCode.NONE
+            visible: !isEmpty || (root.reserveSpaceForShortcutOrSubmenuIndicator && !shortcutLabel.visible)
+        }
+    }
+
+    onHovered: {
+        if (!privateProperties.hasSubMenu) {
+            return
+        }
+
+        if (isHovered) {
+            privateProperties.showSubMenu()
+        } else {
+            var mouseOnShowedSubMenu = mapToItem(privateProperties.showedSubMenu, mouseX, mouseY)
+            var eps = 4
+            var subMenuWidth = privateProperties.showedSubMenu.x + privateProperties.showedSubMenu.width
+            var subMenuHeight = privateProperties.showedSubMenu.y + privateProperties.showedSubMenu.height
+            var isHoveredOnShowedSubMenu = (0 < mouseOnShowedSubMenu.x + eps &&
+                                            mouseOnShowedSubMenu.x - eps < subMenuWidth) &&
+                                           (0 < mouseOnShowedSubMenu.y + eps &&
+                                            mouseOnShowedSubMenu.y - eps < subMenuHeight)
+
+            if (isHoveredOnShowedSubMenu) {
+                return
+            }
+
+            privateProperties.showedSubMenu.close()
+        }
+    }
+
+    onClicked: {
+        if (privateProperties.hasSubMenu) {
+            privateProperties.showSubMenu()
+            return
+        }
+
+        root.handleAction(modelData.code, privateProperties.isSelectable ? index : -1)
     }
 }

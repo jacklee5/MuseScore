@@ -27,49 +27,9 @@
 
 #include "ipaintprovider.h"
 #include "drawtypes.h"
-#include "drawobjectslogger.h"
+#include "drawlogger.h"
 
 namespace mu::draw {
-struct DrawBuffer
-{
-    struct State {
-        QPen pen;
-        QBrush brush;
-        QFont font;
-        bool isAntialiasing = false;
-        QTransform worldTransform;
-        bool worldTransformCombine = false;
-        QTransform transform;
-        bool transformCombine = false;
-        Scale scale;
-        double rotate = 0.0;
-        QPointF translate;
-        CompositionMode compositionMode = CompositionMode::SourceOver;
-    };
-
-    struct Data {
-        State state;
-
-        std::vector<FillPath> fillPaths;
-        std::vector<FillRect> fillRects;
-        std::vector<QPainterPath> paths;
-        std::vector<DrawPath> drawPaths;
-        std::vector<QLineF> lines;
-        std::vector<QRectF> rects;
-        std::vector<QRectF> ellipses;
-        std::vector<FillPolygon> polygons;
-        std::vector<DrawText> texts;
-        std::vector<DrawRectText> rectTexts;
-        std::vector<DrawGlyphRun> glyphs;
-        std::vector<DrawPixmap> pixmaps;
-        std::vector<DrawTiledPixmap> tiledPixmap;
-    };
-
-    QRect window;
-    QRect viewport;
-    std::vector<Data> datas;
-};
-
 class BufferedPaintProvider : public IPaintProvider
 {
 public:
@@ -78,12 +38,13 @@ public:
     QPaintDevice* device() const override;
     QPainter* qpainter() const override;
 
-    void begin(const std::string& name) override;
-    bool end(const std::string& name) override;
     bool isActive() const override;
+    void beginTarget(const std::string& name) override;
+    void beforeEndTargetHook(Painter* painter) override;
+    bool endTarget(bool endDraw = false) override;
 
     void beginObject(const std::string& name, const QPointF& pagePos) override;
-    void endObject(const std::string& name, const QPointF& pagePos) override;
+    void endObject() override;
 
     void setAntialiasing(bool arg) override;
     void setCompositionMode(CompositionMode mode) override;
@@ -101,56 +62,35 @@ public:
     void save() override;
     void restore() override;
 
-    void setWorldTransform(const QTransform& matrix, bool combine = false) override;
-    const QTransform& worldTransform() const override;
-
-    void setTransform(const QTransform& transform, bool combine = false) override;
+    void setTransform(const QTransform& transform) override;
     const QTransform& transform() const override;
 
-    void scale(qreal sx, qreal sy) override;
-    void rotate(qreal angle) override;
-
-    void translate(const QPointF& offset) override;
-
-    QRect window() const override;
-    void setWindow(const QRect& window) override;
-    QRect viewport() const override;
-    void setViewport(const QRect& viewport) override;
-
     // drawing functions
-    void fillPath(const QPainterPath& path, const QBrush& brush) override;
     void drawPath(const QPainterPath& path) override;
-    void strokePath(const QPainterPath& path, const QPen& pen) override;
-
-    void drawLines(const QLineF* lines, int lineCount) override;
-
-    void drawRects(const QRectF* rects, int rectCount) override;
-
-    void drawEllipse(const QRectF& rect) override;
-
-    void drawPolyline(const QPointF* points, int pointCount) override;
-
-    void drawPolygon(const QPointF* points, int pointCount, Qt::FillRule fillRule = Qt::OddEvenFill) override;
-    void drawConvexPolygon(const QPointF* points, int pointCount) override;
+    void drawPolygon(const QPointF* points, int pointCount, PolygonMode mode) override;
 
     void drawText(const QPointF& point, const QString& text) override;
     void drawText(const QRectF& rect, int flags, const QString& text) override;
-
     void drawGlyphRun(const QPointF& position, const QGlyphRun& glyphRun) override;
-
-    void fillRect(const QRectF& rect, const QBrush& brush) override;
 
     void drawPixmap(const QPointF& p, const QPixmap& pm) override;
     void drawTiledPixmap(const QRectF& rect, const QPixmap& pm, const QPointF& offset = QPointF()) override;
 
+    // ---
+
+    const DrawData& drawData() const;
+    void clear();
+
 private:
 
-    const DrawBuffer::State& currentState() const;
-    DrawBuffer::State& editableState();
-    DrawBuffer::Data& editableData();
+    const DrawData::Data& currentData() const;
+    DrawData::Data& editableData();
 
-    DrawBuffer m_buf;
-    bool m_isCurDataEmpty = true;
+    const DrawData::State& currentState() const;
+    DrawData::State& editableState();
+
+    DrawData m_buf;
+    std::stack<DrawData::Object> m_currentObjects;
     bool m_isActive = false;
     DrawObjectsLogger m_drawObjectsLogger;
 };

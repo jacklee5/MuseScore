@@ -19,13 +19,13 @@
 #include "bufferedpaintprovider.h"
 
 #include "log.h"
+#include "config.h"
 
 using namespace mu::draw;
 
 BufferedPaintProvider::BufferedPaintProvider()
 {
-    //! NOTE Make data with default state
-    m_buf.datas.push_back(DrawBuffer::Data());
+    clear();
 }
 
 QPaintDevice* BufferedPaintProvider::device() const
@@ -38,14 +38,25 @@ QPainter* BufferedPaintProvider::qpainter() const
     return nullptr;
 }
 
-void BufferedPaintProvider::begin(const std::string&)
+void BufferedPaintProvider::beginTarget(const std::string& name)
 {
+    clear();
+    m_buf.name = name;
+    beginObject(name + "_default", QPointF());
     m_isActive = true;
 }
 
-bool BufferedPaintProvider::end(const std::string&)
+void BufferedPaintProvider::beforeEndTargetHook(Painter*)
 {
-    m_isActive = false;
+}
+
+bool BufferedPaintProvider::endTarget(bool endDraw)
+{
+    UNUSED(endDraw);
+    if (m_isActive) {
+        m_isActive = false;
+        endObject();
+    }
     return true;
 }
 
@@ -56,39 +67,63 @@ bool BufferedPaintProvider::isActive() const
 
 void BufferedPaintProvider::beginObject(const std::string& name, const QPointF& pagePos)
 {
+    // add new object
+    m_currentObjects.push(DrawData::Object(name, pagePos));
+
+#ifdef TRACE_DRAW_OBJ_ENABLED
     m_drawObjectsLogger.beginObject(name, pagePos);
+#endif
 }
 
-void BufferedPaintProvider::endObject(const std::string& name, const QPointF& pagePos)
+void BufferedPaintProvider::endObject()
 {
-    m_drawObjectsLogger.endObject(name, pagePos);
+    TRACEFUNC;
+
+    // remove last empty state
+    DrawData::Object& obj = m_currentObjects.top();
+    if (!obj.datas.empty() && obj.datas.back().empty()) {
+        obj.datas.pop_back();
+    }
+
+    // move object to buffer
+    m_buf.objects.push_back(obj);
+
+    // remove obj
+    m_currentObjects.pop();
+
+#ifdef TRACE_DRAW_OBJ_ENABLED
+    m_drawObjectsLogger.endObject();
+#endif
 }
 
-const DrawBuffer::State& BufferedPaintProvider::currentState() const
+const DrawData::Data& BufferedPaintProvider::currentData() const
 {
-    return m_buf.datas.back().state;
+    return m_currentObjects.top().datas.back();
 }
 
-DrawBuffer::State& BufferedPaintProvider::editableState()
+const DrawData::State& BufferedPaintProvider::currentState() const
 {
-    DrawBuffer::Data& data = m_buf.datas.back();
-    if (m_isCurDataEmpty) {
+    return currentData().state;
+}
+
+DrawData::Data& BufferedPaintProvider::editableData()
+{
+    return m_currentObjects.top().datas.back();
+}
+
+DrawData::State& BufferedPaintProvider::editableState()
+{
+    DrawData::Data& data = m_currentObjects.top().datas.back();
+    if (data.empty()) {
         return data.state;
     }
 
     {
-        DrawBuffer::Data newData;
+        DrawData::Data newData;
         newData.state = data.state;
-        m_buf.datas.push_back(std::move(newData));
-        m_isCurDataEmpty = true;
+        m_currentObjects.top().datas.push_back(std::move(newData));
     }
-    return m_buf.datas.back().state;
-}
-
-DrawBuffer::Data& BufferedPaintProvider::editableData()
-{
-    m_isCurDataEmpty = false;
-    return m_buf.datas.back();
+    return m_currentObjects.top().datas.back().state;
 }
 
 void BufferedPaintProvider::setAntialiasing(bool arg)
@@ -144,23 +179,10 @@ void BufferedPaintProvider::restore()
 {
 }
 
-void BufferedPaintProvider::setWorldTransform(const QTransform& matrix, bool combine)
+void BufferedPaintProvider::setTransform(const QTransform& transform)
 {
-    DrawBuffer::State& st = editableState();
-    st.worldTransform = matrix;
-    st.worldTransformCombine = combine;
-}
-
-const QTransform& BufferedPaintProvider::worldTransform() const
-{
-    return currentState().worldTransform;
-}
-
-void BufferedPaintProvider::setTransform(const QTransform& transform, bool combine)
-{
-    DrawBuffer::State& st = editableState();
+    DrawData::State& st = editableState();
     st.transform = transform;
-    st.transformCombine = combine;
 }
 
 const QTransform& BufferedPaintProvider::transform() const
@@ -168,103 +190,30 @@ const QTransform& BufferedPaintProvider::transform() const
     return currentState().transform;
 }
 
-void BufferedPaintProvider::scale(qreal sx, qreal sy)
-{
-    editableState().scale = Scale{ sx, sy };
-}
-
-void BufferedPaintProvider::rotate(qreal angle)
-{
-    editableState().rotate = angle;
-}
-
-void BufferedPaintProvider::translate(const QPointF& offset)
-{
-    editableState().translate = offset;
-}
-
-QRect BufferedPaintProvider::window() const
-{
-    return m_buf.window;
-}
-
-void BufferedPaintProvider::setWindow(const QRect& window)
-{
-    m_buf.window = window;
-}
-
-QRect BufferedPaintProvider::viewport() const
-{
-    return m_buf.viewport;
-}
-
-void BufferedPaintProvider::setViewport(const QRect& viewport)
-{
-    m_buf.viewport = viewport;
-}
-
 // drawing functions
-
-void BufferedPaintProvider::fillPath(const QPainterPath& path, const QBrush& brush)
-{
-    editableData().fillPaths.push_back(FillPath { path, brush });
-}
 
 void BufferedPaintProvider::drawPath(const QPainterPath& path)
 {
-    editableData().paths.push_back(path);
-}
-
-void BufferedPaintProvider::strokePath(const QPainterPath& path, const QPen& pen)
-{
-    editableData().drawPaths.push_back(DrawPath { path, pen, true });
-}
-
-void BufferedPaintProvider::drawLines(const QLineF* lines, int lineCount)
-{
-    for (int i = 0; i < lineCount; ++i) {
-        editableData().lines.push_back(lines[i]);
+    const DrawData::State& st = currentState();
+    DrawMode mode = DrawMode::StrokeAndFill;
+    if (st.pen.style() == Qt::NoPen) {
+        mode = DrawMode::Fill;
+    } else if (st.brush.style() == Qt::NoBrush) {
+        mode = DrawMode::Stroke;
+    } else {
+        LOGW() << "not set pen or brush, path will not draw";
+        return;
     }
+    editableData().paths.push_back({ path, st.pen, st.brush, mode });
 }
 
-void BufferedPaintProvider::drawRects(const QRectF* rects, int rectCount)
-{
-    for (int i = 0; i < rectCount; ++i) {
-        editableData().rects.push_back(rects[i]);
-    }
-}
-
-void BufferedPaintProvider::drawEllipse(const QRectF& rect)
-{
-    editableData().ellipses.push_back(rect);
-}
-
-void BufferedPaintProvider::drawPolyline(const QPointF* points, int pointCount)
-{
-    DrawBuffer::Data& d = editableData();
-    for (int i = 1; i < pointCount; ++i) {
-        QPointF p1 = points[i - 1];
-        QPointF p2 = points[i];
-        d.lines.push_back(QLineF(p1, p2));
-    }
-}
-
-void BufferedPaintProvider::drawPolygon(const QPointF* points, int pointCount, Qt::FillRule fillRule)
+void BufferedPaintProvider::drawPolygon(const QPointF* points, int pointCount, PolygonMode mode)
 {
     QPolygonF pol(pointCount);
     for (int i = 0; i < pointCount; ++i) {
         pol[i] = points[i];
     }
-    editableData().polygons.push_back(FillPolygon { pol, fillRule, false });
-}
-
-void BufferedPaintProvider::drawConvexPolygon(const QPointF* points, int pointCount)
-{
-    QVector<QPointF> vec(pointCount);
-    for (int i = 0; i < pointCount; ++i) {
-        vec[i] = points[i];
-    }
-    editableData().polygons.push_back(FillPolygon { QPolygonF(vec), Qt::OddEvenFill, true });
+    editableData().polygons.push_back(DrawPolygon { pol, mode });
 }
 
 void BufferedPaintProvider::drawText(const QPointF& point, const QString& text)
@@ -282,11 +231,6 @@ void BufferedPaintProvider::drawGlyphRun(const QPointF& position, const QGlyphRu
     editableData().glyphs.push_back(DrawGlyphRun { position, glyphRun });
 }
 
-void BufferedPaintProvider::fillRect(const QRectF& rect, const QBrush& brush)
-{
-    editableData().fillRects.push_back(FillRect { rect, brush });
-}
-
 void BufferedPaintProvider::drawPixmap(const QPointF& p, const QPixmap& pm)
 {
     editableData().pixmaps.push_back(DrawPixmap { p, pm });
@@ -295,4 +239,16 @@ void BufferedPaintProvider::drawPixmap(const QPointF& p, const QPixmap& pm)
 void BufferedPaintProvider::drawTiledPixmap(const QRectF& rect, const QPixmap& pm, const QPointF& offset)
 {
     editableData().tiledPixmap.push_back(DrawTiledPixmap { rect, pm, offset });
+}
+
+const DrawData& BufferedPaintProvider::drawData() const
+{
+    return m_buf;
+}
+
+void BufferedPaintProvider::clear()
+{
+    m_buf = DrawData();
+    std::stack<DrawData::Object> empty;
+    m_currentObjects.swap(empty);
 }

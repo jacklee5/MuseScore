@@ -12,14 +12,21 @@ import "internal"
 Rectangle {
     id: root
 
+    property alias keynav: keynavSub
     property bool floating: false
 
-    Component.onCompleted: {
-        playbackModel.load()
+    KeyNavigationSubSection {
+        id: keynavSub
+        name: "PlaybackToolBar"
     }
 
     PlaybackToolBarModel {
         id: playbackModel
+        isToolbarFloating: root.floating
+    }
+
+    Component.onCompleted: {
+        playbackModel.load()
     }
 
     Column {
@@ -44,40 +51,63 @@ Rectangle {
 
                 spacing: 4
 
-                model: FilterProxyModel {
-                    sourceModel: playbackModel
-
-                    filters: [
-                        FilterValue {
-                            roleName: "isAdditional"
-                            roleValue: false
-                            compareType: CompareType.Equal
-                            enabled: !root.floating
-                        }
-                    ]
-                }
+                model: playbackModel
 
                 orientation: Qt.Horizontal
                 interactive: false
 
-                delegate: FlatButton {
-                    icon: model.icon
-                    hint: model.hint
-                    iconFont: ui.theme.toolbarIconsFont
+                delegate: Loader {
+                    id: itemLoader
 
-                    normalStateColor: model.checked || playbackSettings.isOpened ? ui.theme.accentColor : "transparent"
+                    sourceComponent: Boolean(model.code) || model.subitems.length !== 0 ? menuItemComp : separatorComp
 
-                    onClicked: {
-                        if (model.isPlaybackSettings) {
-                            playbackSettings.toggleOpened()
-                            return
-                        }
-
-                        playbackModel.handleAction(model.code)
+                    onLoaded: {
+                        itemLoader.item.modelData = model
                     }
 
-                    PlaybackSettingsPopup {
-                        id: playbackSettings
+                    Component {
+                        id: menuItemComp
+
+                        FlatButton {
+                            property var modelData
+                            property var hasSubitems: modelData.subitems.length !== 0
+
+                            icon: modelData.icon
+                            hint: modelData.hint
+                            iconFont: ui.theme.toolbarIconsFont
+
+                            normalStateColor: modelData.checked || menuLoader.isMenuOpened()
+                                              ? ui.theme.accentColor : "transparent"
+                            accentButton: modelData.checked || menuLoader.isMenuOpened()
+
+                            keynav.subsection: keynavSub
+                            keynav.name: modelData.hint
+                            keynav.order: modelData.index
+                            keynav.enabled: playbackModel.isPlayAllowed
+
+                            onClicked: {
+                                if (menuLoader.isMenuOpened() || hasSubitems) {
+                                    menuLoader.toggleOpened(modelData.subitems)
+                                    return
+                                }
+
+                                Qt.callLater(playbackModel.handleAction, modelData.code)
+                            }
+
+                            StyledMenuLoader {
+                                id: menuLoader
+                                onHandleAction: playbackModel.handleAction(actionCode)
+                            }
+                        }
+                    }
+
+                    Component {
+                        id: separatorComp
+
+                        SeparatorLine {
+                            property var modelData
+                            orientation: Qt.Vertical
+                        }
                     }
                 }
             }

@@ -20,6 +20,10 @@ ComboBox {
 
         // Simple models (like JS array) with single predefined role name - modelData
         if (model[index] !== undefined) {
+            if (model[index][roleName] === undefined) {
+                return model[index]
+            }
+
             return model[index][roleName]
         }
 
@@ -202,6 +206,8 @@ ComboBox {
 
             boundsBehavior: Flickable.StopAtBounds
             highlightMoveDuration: 250
+
+            ScrollBar.vertical: StyledScrollBar { }
 
             populate: Transition {
                 NumberAnimation { property: "opacity"; from: 0.5; to: 1; duration: 200; easing.type: Easing.OutCubic }

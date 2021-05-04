@@ -23,16 +23,15 @@
 #include <QQuickItem>
 
 #include "uicomponents/view/qmllistproperty.h"
-#include "uicomponents/uicomponentstypes.h"
 #include "dockpage.h"
 #include "dockmenubar.h"
 
 #include "ui/imainwindow.h"
-#include "ui/iplatformtheme.h"
 
 class QMainWindow;
 class QStackedWidget;
 class QStatusBar;
+class QMenuBar;
 
 namespace mu::dock {
 class EventsWatcher;
@@ -53,7 +52,6 @@ class DockWindow : public QQuickItem, public ui::IMainWindow
     Q_CLASSINFO("DefaultProperty", "pages")
     Q_INTERFACES(QQmlParserStatus)
 
-    INJECT(dock, ui::IPlatformTheme, platformTheme)
     INJECT(dock, ui::IUiConfiguration, configuration)
 
 public:
@@ -70,6 +68,7 @@ public:
     QString currentPageUri() const;
 
     QMainWindow* qMainWindow() override;
+    QMenuBar* qMenuBar();
     void stackUnder(QWidget* w) override;
 
 public slots:

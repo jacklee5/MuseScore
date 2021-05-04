@@ -4,12 +4,11 @@ import MuseScore.Dock 1.0
 import MuseScore.Ui 1.0
 import MuseScore.Playback 1.0
 import MuseScore.NotationScene 1.0
-import MuseScore.AppMenu 1.0
+import MuseScore.AppShell 1.0
 import MuseScore.Shortcuts 1.0
 
 import "./HomePage"
 import "./NotationPage"
-import "./Settings"
 import "./DevTools"
 
 DockWindow {
@@ -23,13 +22,37 @@ DockWindow {
     Component.onCompleted: {
         shortcutsModel.load()
         appMenuModel.load()
-        api.launcher.open(homePage.uri)
+        startupModel.load()
     }
 
     property var provider: InteractiveProvider {
         topParent: dockWindow
         onRequestedDockPage: {
+            initParams(uri, params)
             dockWindow.currentPageUri = uri
+        }
+
+        function initParams(uri, params) {
+            if (!Boolean(params)) {
+                return
+            }
+
+            for (var i in dockWindow.pages) {
+                var page = dockWindow.pages[i]
+                if (page.uri !== uri) {
+                    continue
+                }
+
+                var props = Object.keys(page)
+                for (var p in params) {
+                    if (props.indexOf(p) !== -1) {
+                        var value = params[p]
+                        // NOTE: needed reset the value for emitting a signal with new value
+                        page[p] = null
+                        page[p] = value
+                    }
+                }
+            }
         }
     }
 
@@ -38,29 +61,47 @@ DockWindow {
 
     property ShortcutsInstanceModel shortcutsModel: ShortcutsInstanceModel {}
     property AppMenuModel appMenuModel: AppMenuModel {}
+    property StartupModel startupModel: StartupModel {}
+
+    property KeyNavigationSection topToolKeyNavSec: KeyNavigationSection {
+        id: keynavSec
+        name: "TopTool"
+        order: 1
+    }
 
     menuBar: DockMenuBar {
         objectName: "mainMenuBar"
 
         items: appMenuModel.items
 
-        onActionTringgered: {
+        onActionTriggered: {
             appMenuModel.handleAction(actionCode, actionIndex)
         }
     }
 
     toolbars: [
         DockToolBar {
+            id: mainToolBar
             objectName: "mainToolBar"
-            minimumWidth: 282
+            minimumWidth: 296
             minimumHeight: dockWindow.toolbarHeight
 
             color: dockWindow.color
             allowedAreas: Qt.TopToolBarArea
 
+            title: qsTrc("appshell", "Main Toolbar")
+
             content: MainToolBar {
                 color: dockWindow.color
+                keynav.section: topToolKeyNavSec
+                keynav.order: 1
                 currentUri: dockWindow.currentPageUri
+
+                keynav.onActiveChanged: {
+                    if (keynav.active) {
+                        mainToolBar.forceActiveFocus()
+                    }
+                }
 
                 onSelected: {
                     api.launcher.open(uri)
@@ -77,20 +118,27 @@ DockWindow {
             color: dockWindow.color
             allowedAreas: Qt.TopToolBarArea
 
+            title: qsTrc("appshell", "Notation Toolbar")
+
             content: NotationToolBar {
                 id: notationToolBarContent
                 color: dockWindow.color
+
+                keynav.section: topToolKeyNavSec
+                keynav.order: 2
+                keynav.enabled: notationToolBar.visible
+                onActiveFocusRequested: {
+                    if (keynav.active) {
+                        notationToolBar.forceActiveFocus()
+                    }
+                }
 
                 Connections {
                     target: notationToolBar
 
                     Component.onCompleted: {
                         notationPage.pageModel.isNotationToolBarVisible = notationToolBar.visible
-                        notationToolBar.visible = Qt.binding(function() { return dockWindow.isNotationPage && notationPage.pageModel.isNotationToolBarVisible})
-                    }
-
-                    function onVisibleEdited(visible) {
-                        notationPage.pageModel.isNotationToolBarVisible = visible
+                        notationToolBar.visible = Qt.binding(function() { return dockWindow.isNotationPage && notationPage.pageModel.isNotationToolBarVisible })
                     }
                 }
             }
@@ -106,9 +154,16 @@ DockWindow {
             color: dockWindow.color
             allowedAreas: Qt.TopToolBarArea
 
+            title: qsTrc("appshell", "Playback Controls")
+
             content: PlaybackToolBar {
                 id: playbackToolBarContent
                 color: dockWindow.color
+
+                keynav.section: topToolKeyNavSec
+                keynav.order: 3
+                keynav.enabled: dockWindow.isNotationPage
+
                 floating: playbackToolBar.floating
 
                 Connections {
@@ -118,16 +173,12 @@ DockWindow {
                         notationPage.pageModel.isPlaybackToolBarVisible = playbackToolBar.visible
                         playbackToolBar.visible = Qt.binding(function() { return dockWindow.isNotationPage && notationPage.pageModel.isPlaybackToolBarVisible})
                     }
-
-                    function onVisibleEdited(visible) {
-                        notationPage.pageModel.isPlaybackToolBarVisible = visible
-                    }
                 }
             }
         },
 
         DockToolBar	{
-            id:undoRedoToolBar
+            id: undoRedoToolBar
             objectName: "undoRedoToolBar"
 
             minimumWidth: 72
@@ -136,6 +187,8 @@ DockWindow {
             color: dockWindow.color
             floatable: false
             movable: false
+
+            title: qsTrc("appshell", "Undo/Redo Toolbar")
 
             content: UndoRedoToolBar {
                 id: undoRedoToolBarContent
@@ -147,10 +200,6 @@ DockWindow {
                     Component.onCompleted: {
                         notationPage.pageModel.isUndoRedoToolBarVisible = undoRedoToolBar.visible
                         undoRedoToolBar.visible = Qt.binding(function() { return dockWindow.isNotationPage && notationPage.pageModel.isUndoRedoToolBarVisible})
-                    }
-
-                    function onVisibleEdited(visible) {
-                        notationPage.pageModel.isUndoRedoToolBarVisible = visible
                     }
                 }
             }
@@ -167,6 +216,18 @@ DockWindow {
         id: notationPage
 
         uri: "musescore://notation"
+
+        isNotationToolBarVisible: Boolean(currentPageUri) && notationToolBar.visible
+        isPlaybackToolBarVisible: Boolean(currentPageUri) && playbackToolBar.visible
+        isUndoRedoToolBarVisible: Boolean(currentPageUri) && undoRedoToolBar.visible
+
+        Connections {
+            target: dockWindow
+
+            function onCurrentPageUriChanged(currentPageUri) {
+                notationPage.updatePageState()
+            }
+        }
     }
 
     SequencerPage {

@@ -22,33 +22,30 @@
 #include "modularity/ioc.h"
 
 #include "shortcuts/ishortcutsregister.h"
-#include "actions/iactionsregister.h"
+#include "ui/iuiactionsregister.h"
 
 #include "inotationcontextmenu.h"
 
 namespace mu::notation {
 class NotationContextMenu : public INotationContextMenu
 {
-    INJECT(notation, shortcuts::IShortcutsRegister, shortcutsRegister)
-    INJECT(notation, actions::IActionsRegister, actionsRegister)
+    INJECT(notation, ui::IUiActionsRegister, actionsRegister)
 
 public:
-    uicomponents::MenuItemList items(const ElementType& elementType) const override;
+    ui::MenuItemList items(const ElementType& elementType) const override;
 
 private:
-    uicomponents::MenuItem makeItem(const actions::ActionItem& action, const std::string& section = "", bool enabled = true,
-                                    bool checked = false) const;
+    ui::MenuItem makeItem(const ui::UiAction& action, const QString& section = "", bool enabled = true, bool checked = false) const;
 
-    uicomponents::MenuItemList measureItems() const;
-    uicomponents::MenuItemList pageItems() const;
-    uicomponents::MenuItemList elementItems() const;
+    ui::MenuItemList measureItems() const;
+    ui::MenuItemList pageItems() const;
+    ui::MenuItemList elementItems() const;
 
     uicomponents::MenuItemList defaultCopyPasteItems() const;
 
     uicomponents::MenuItem makeMenu(const std::string& title, const uicomponents::MenuItemList& actions, bool enabled = true,
         const actions::ActionCode& menuActionCode = "") const;
     uicomponents::MenuItemList addViewItems(uicomponents::MenuItemList items) const;
-};
 }
 
 #endif // MU_NOTATION_NOTATIONCONTEXTMENU_H

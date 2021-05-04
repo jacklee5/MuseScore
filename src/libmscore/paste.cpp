@@ -499,7 +499,7 @@ bool Score::pasteStaff(XmlReader& e, Segment* dst, int dstStaff, Fraction scale)
         Measure* endM = tick2measure(dstTick + tickLen);
         for (int i = dstStaff; i < endStaff; i++) {
             for (Measure* m = dstM; m && m != endM->nextMeasure(); m = m->nextMeasure()) {
-                m->checkMeasure(i);
+                m->checkMeasure(i, false);
             }
         }
         _selection.setRangeTicks(dstTick, dstTick + tickLen, dstStaff, endStaff);
@@ -1173,9 +1173,11 @@ void Score::cmdPaste(const QMimeData* ms, MuseScoreView* view, Fraction scale)
             EditData ddata(view);
             ddata.view       = view;
             ddata.dropElement    = nel;
-            target->drop(ddata);
-            if (_selection.element()) {
-                addRefresh(_selection.element()->abbox());
+            if (target->acceptDrop(ddata)) {
+                target->drop(ddata);
+                if (_selection.element()) {
+                    addRefresh(_selection.element()->abbox());
+                }
             }
         }
         delete image;
