@@ -17,6 +17,7 @@
 //  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 //=============================================================================
 #include "notationcontextmenu.h"
+#include "translation.h"
 
 #include "ui/view/iconcodes.h"
 
@@ -28,11 +29,11 @@ MenuItemList NotationContextMenu::items(const ElementType& elementType) const
 {
     switch (elementType) {
     case ElementType::MEASURE:
-        return measureItems();
+        return addViewItems(measureItems());
     case ElementType::PAGE:
-        return pageItems();
+        return addViewItems(pageItems());
     default:
-        return elementItems();
+        return addViewItems(elementItems());
     }
 }
 
@@ -76,8 +77,7 @@ MenuItemList NotationContextMenu::elementItems() const
     items << makeItem(actionsRegister()->action("select-similar"))
           << makeItem(actionsRegister()->action("select-similar-staff"))
           << makeItem(actionsRegister()->action("select-similar-range"))
-          << makeItem(actionsRegister()->action("select-dialog"))
-          << makeItem(actionsRegister()->action("inspector"));
+          << makeItem(actionsRegister()->action("select-dialog"));
 
     return items;
 }
@@ -91,6 +91,43 @@ MenuItemList NotationContextMenu::defaultCopyPasteItems() const
         makeItem(actionsRegister()->action("swap")),
         makeItem(actionsRegister()->action("delete")),
     };
+
+    return items;
+}
+
+MenuItem NotationContextMenu::makeMenu(const std::string& title, const MenuItemList& actions, bool enabled, const ActionCode& menuActionCode) const
+{
+    MenuItem item;
+    item.code = menuActionCode;
+    item.title = title;
+    item.subitems = actions;
+    item.enabled = enabled;
+    return item;
+}
+
+MenuItemList NotationContextMenu::addViewItems(MenuItemList items) const
+{
+    MenuItemList toolsItems{
+        makeItem(actionsRegister()->action("toggle-palette")),
+        makeItem(actionsRegister()->action("toggle-instruments")),
+        makeItem(actionsRegister()->action("masterpalette")),
+        makeItem(actionsRegister()->action("inspector")),
+        makeItem(actionsRegister()->action("toggle-navigator")),
+        makeItem(actionsRegister()->action("toggle-mixer")),
+    };
+
+    MenuItem item = makeMenu(trc("appshell", "&View"), toolsItems);
+
+    items << item;
+
+    /*items 
+        << makeSeparator()
+        << makeItem(actionsRegister()->action("toggle-palette"))
+        << makeItem(actionsRegister()->action("toggle-instruments"))
+        << makeItem(actionsRegister()->action("masterpalette"))
+        << makeItem(actionsRegister()->action("inspector"))
+        << makeItem(actionsRegister()->action("toggle-navigator"))
+        << makeItem(actionsRegister()->action("toggle-mixer"));*/
 
     return items;
 }

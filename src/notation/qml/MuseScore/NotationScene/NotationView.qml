@@ -33,7 +33,7 @@ FocusScope {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            orientation: notationNavigator.orientation
+            orientation: notationNavigator.orientation === Qt.Horizontal ? Qt.Vertical : Qt.Horizontal
 
             background: Rectangle {
                 color: notationView.backgroundColor
@@ -68,9 +68,24 @@ FocusScope {
                         verticalScrollBar.setPosition(notationView.startVerticalScrollPosition)
                     }
                 }
-
+                
                 ContextMenu {
                     id: contextMenu
+                }
+
+                Component {
+                    id: menuSeparator
+                    MenuSeparator {
+
+                    }
+                }
+
+                Component {
+                    id: subMenu
+                    
+                    ContextMenu {
+
+                    }
                 }
 
                 StyledScrollBar {
@@ -185,16 +200,41 @@ FocusScope {
             for (var i in items) {
                 var item = items[i]
 
-                var action = notationMenuAction.createObject(notationView, {
-                                                                 code: item.code,
-                                                                 text: item.title,
-                                                                 hintIcon: item.icon,
-                                                                 shortcut: item.shortcut
-                                                             })
-                contextMenu.addMenuItem(action)
+//                if (item.title !== "") {
+//                    var action = makeAction(item)
+//                    contextMenu.addMenuItem(action)
+//                } else {
+//                    contextMenu.addItem(menuSeparator.createObject(notationView))
+//                }
+                
+                if (item.subitems.length === 0) {
+                    var action = makeAction(item)
+                    contextMenu.addMenuItem(action)
+                } else {
+                    var submenu = subMenu.createObject(notationView)
+                    submenu.title = item.title
+
+                    for (var j = 0; j < item.subitems.length; j++) {
+                        var subitem = item.subitems[j]
+                        var action = makeAction(subitem)
+                        submenu.addMenuItem(action)
+                    }
+
+                    contextMenu.addMenu(submenu)
+                }
             }
 
             contextMenu.popup()
+        }
+
+        function makeAction(item) {
+            var action = notationMenuAction.createObject(notationView, {
+                                                                         code: item.code,
+                                                                         text: item.title,
+                                                                         hintIcon: item.icon,
+                                                                         shortcut: item.shortcut
+                                                                     })
+            return action
         }
     }
 
