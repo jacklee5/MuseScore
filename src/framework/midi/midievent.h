@@ -372,7 +372,7 @@ struct Event {
     }
 
     //!return velocity in range [0.f, 1.f] independent from message type
-    float velocityFraction()
+    float velocityFraction() const
     {
         return velocity() / static_cast<float>(maxVelocity());
     }
@@ -979,15 +979,24 @@ struct Event {
     }
 
 private:
+    //!Note Temporarily disabled until the end of the investigation, looks like we're not supporting some 'custom' messages from MU3
+    //! v.pereverzev@wsmgroup.ru
     void assertMessageType(const std::set<MessageType>& supportedTypes) const
     {
         UNUSED(supportedTypes);
-        assert(isMessageTypeIn(supportedTypes));
+        //assert(isMessageTypeIn(supportedTypes));
     }
 
-    void assertChannelVoice() const { assert(isChannelVoice()); }
+    //!Note Temporarily disabled until the end of the investigation, looks like we're not supporting some 'custom' messages from MU3
+    //! v.pereverzev@wsmgroup.ru
+    void assertChannelVoice() const { /*assert(isChannelVoice());*/ }
 
-    void assertOpcode(const std::set<Opcode>& supportedOpcodes) const { UNUSED(supportedOpcodes); assert(isOpcodeIn(supportedOpcodes)); }
+    //!Note Temporarily disabled until the end of the investigation, looks like we're not supporting some 'custom' messages from MU3
+    //! v.pereverzev@wsmgroup.ru
+    void assertOpcode(const std::set<Opcode>& supportedOpcodes) const
+    {
+        UNUSED(supportedOpcodes); /*assert(isOpcodeIn(supportedOpcodes));*/
+    }
 
     static uint32_t scaleUp(uint32_t srcVal, size_t srcBits, size_t dstBits)
     {

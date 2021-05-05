@@ -20,7 +20,7 @@ Rectangle {
 
     KeyNavigationSubSection {
         id: keynavSub
-        name: "NotationToolBar"
+        name: "NoteInputBar"
     }
 
     NoteInputBarModel {
@@ -37,13 +37,16 @@ Rectangle {
 
         sectionRole: "sectionRole"
 
+        rowSpacing: 6
+        columnSpacing: 6
+
         cellWidth: 36
         cellHeight: cellWidth
 
         model: noteInputModel
 
         sectionDelegate: SeparatorLine {
-            orientation: gridView.orientation === Qt.Vertical ? Qt.Horizontal : Qt.Vertical
+            orientation: gridView.isHorizontal ? Qt.Vertical : Qt.Horizontal
             visible: itemIndex !== 0
         }
 
@@ -59,6 +62,7 @@ Rectangle {
             iconFont: ui.theme.toolbarIconsFont
 
             keynav.subsection: keynavSub
+            keynav.name: hint
             keynav.order: Boolean(item) ? item.orderRole : 0
 
             pressAndHoldInterval: 200
@@ -83,42 +87,30 @@ Rectangle {
                 menuLoader.toggleOpened(item.subitemsRole)
             }
 
-            Loader {
-                id: menuLoader
-                anchors.fill: parent
+            Canvas {
+                visible: item.showSubitemsByPressAndHoldRole
 
-                property var menu: menuLoader.item
+                width: 4
+                height: 4
 
-                function isMenuOpened() {
-                    return menuLoader.menu && menuLoader.menu.isOpened
-                }
+                anchors.margins: 2
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
 
-                function toggleOpened(items) {
-                    if (!menuLoader.sourceComponent) {
-                        menuLoader.sourceComponent = itemMenuComp
-                    }
-
-                    if (menuLoader.menu.isOpened) {
-                        menuLoader.menu.close()
-                        return
-                    }
-
-                    menuLoader.menu.model = items
-                    menuLoader.menu.open()
+                onPaint: {
+                    const ctx = getContext("2d");
+                    ctx.fillStyle = ui.theme.fontPrimaryColor;
+                    ctx.moveTo(width, 0);
+                    ctx.lineTo(width, height);
+                    ctx.lineTo(0, height);
+                    ctx.closePath();
+                    ctx.fill();
                 }
             }
-        }
-    }
 
-    Component {
-        id: itemMenuComp
-
-        StyledMenu {
-            id: itemMenu
-
-            onHandleAction: {
-                Qt.callLater(noteInputModel.handleAction, actionCode, actionIndex)
-                itemMenu.close()
+            StyledMenuLoader {
+                id: menuLoader
+                onHandleAction: noteInputModel.handleAction(actionCode, actionIndex)
             }
         }
     }
@@ -128,7 +120,11 @@ Rectangle {
 
         anchors.margins: 8
 
+        width: gridView.cellWidth
+        height: gridView.cellHeight
+
         icon: IconCode.CONFIGURE
+        iconFont: ui.theme.toolbarIconsFont
         normalStateColor: "transparent"
         keynav.subsection: keynavSub
         keynav.order: 100

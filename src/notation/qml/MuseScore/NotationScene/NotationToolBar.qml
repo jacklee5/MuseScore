@@ -8,6 +8,8 @@ Rectangle {
 
     property alias keynav: keynavSub
 
+    signal activeFocusRequested()
+
     Component.onCompleted: {
         toolbarModel.load()
     }
@@ -15,6 +17,12 @@ Rectangle {
     KeyNavigationSubSection {
         id: keynavSub
         name: "NotationToolBar"
+        onActiveChanged: {
+            if (active) {
+                root.activeFocusRequested()
+                root.forceActiveFocus()
+            }
+        }
     }
 
     NotationToolBarModel {
@@ -45,6 +53,7 @@ Rectangle {
             textFont: ui.theme.tabFont
 
             keynav.subsection: keynavSub
+            keynav.name: model.title
             keynav.order: model.index
             keynav.enabled: model.enabled
 

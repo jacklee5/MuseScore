@@ -39,13 +39,13 @@ KeyNavigationSection::~KeyNavigationSection()
 void KeyNavigationSection::componentComplete()
 {
     //! NOTE Reg after set properties.
-    LOGD() << "Completed: " << m_name << ", order: " << m_order;
+    LOGD() << "Completed: " << m_name << ", order: " << order();
 
     IF_ASSERT_FAILED(!m_name.isEmpty()) {
         return;
     }
 
-    IF_ASSERT_FAILED(m_order > -1) {
+    IF_ASSERT_FAILED(order() > -1) {
         return;
     }
 
@@ -57,14 +57,24 @@ QString KeyNavigationSection::name() const
     return AbstractKeyNavigation::name();
 }
 
-int KeyNavigationSection::order() const
+const IKeyNavigation::Index& KeyNavigationSection::index() const
 {
-    return AbstractKeyNavigation::order();
+    return AbstractKeyNavigation::index();
+}
+
+mu::async::Channel<IKeyNavigation::Index> KeyNavigationSection::indexChanged() const
+{
+    return AbstractKeyNavigation::indexChanged();
 }
 
 bool KeyNavigationSection::enabled() const
 {
     return AbstractKeyNavigation::enabled();
+}
+
+mu::async::Channel<bool> KeyNavigationSection::enabledChanged() const
+{
+    return AbstractKeyNavigation::enabledChanged();
 }
 
 bool KeyNavigationSection::active() const
@@ -93,6 +103,10 @@ void KeyNavigationSection::addSubSection(KeyNavigationSubSection* sub)
     sub->forceActiveRequested().onReceive(this, [this](const SubSectionControl& subcon) {
         m_forceActiveRequested.send(std::make_tuple(this, std::get<0>(subcon), std::get<1>(subcon)));
     });
+
+    if (m_subsectionsListChanged.isConnected()) {
+        m_subsectionsListChanged.notify();
+    }
 }
 
 mu::async::Channel<SectionSubSectionControl> KeyNavigationSection::forceActiveRequested() const
@@ -106,11 +120,20 @@ void KeyNavigationSection::removeSubSection(KeyNavigationSubSection* sub)
         return;
     }
 
-    m_subsections.remove(sub);
+    m_subsections.erase(sub);
     sub->forceActiveRequested().resetOnReceive(this);
+
+    if (m_subsectionsListChanged.isConnected()) {
+        m_subsectionsListChanged.notify();
+    }
 }
 
-const QSet<IKeyNavigationSubSection*>& KeyNavigationSection::subsections() const
+const std::set<IKeyNavigationSubSection*>& KeyNavigationSection::subsections() const
 {
     return m_subsections;
+}
+
+mu::async::Notification KeyNavigationSection::subsectionsListChanged() const
+{
+    return m_subsectionsListChanged;
 }

@@ -20,67 +20,131 @@ StyledPopupView {
 
     property alias model: view.model
     property int itemWidth: 300
-    property bool reserveSpaceForInvisibleItems: true
 
     signal handleAction(string actionCode, int actionIndex)
 
-    property QtObject privateProperties: QtObject {
-        property var items: []
+    onModelChanged: {
+        privateProperties.hasItemsWithIconAndCheckable = false
+        privateProperties.hasItemsWithIconOrCheckable = false
+        privateProperties.hasItemsWithSubmenu = false
+        privateProperties.hasItemsWithShortcut = false
+
+        for (let i = 0; i < model.length; i++) {
+            let modelData = model[i]
+            let hasIcon = (Boolean(modelData.icon) && modelData.icon !== IconCode.NONE)
+
+            if (modelData.checkable && hasIcon) {
+                privateProperties.hasItemsWithIconAndCheckable = true
+                privateProperties.hasItemsWithIconOrCheckable = true
+            } else if (modelData.checkable || hasIcon) {
+                privateProperties.hasItemsWithIconOrCheckable = true
+            }
+
+            if (Boolean(modelData.subitems) && modelData.subitems.length > 0) {
+                privateProperties.hasItemsWithSubmenu = true
+            }
+
+            if (Boolean(modelData.shortcut)) {
+                privateProperties.hasItemsWithShortcut = true
+            }
+        }
     }
 
-    ListView {
-        id: view
+    property QtObject privateProperties: QtObject {
+        property bool hasItemsWithIconAndCheckable: false
+        property bool hasItemsWithIconOrCheckable: false
+        property bool hasItemsWithSubmenu: false
+        property bool hasItemsWithShortcut: false
+    }
 
-        implicitHeight: contentHeight
+    Item {
+        implicitHeight: view.contentHeight
         implicitWidth: root.itemWidth
 
-        spacing: 2
-        interactive: false
+        ListView {
+            id: view
 
-        delegate: Loader {
-            id: loader
+            anchors.fill: parent
 
-            sourceComponent: Boolean(modelData.title) ? menuItemComp : separatorComp
+            spacing: 2
+            interactive: false
 
-            onLoaded: {
-                loader.item.modelData = modelData
-                loader.item.width = root.itemWidth
-            }
+            delegate: Loader {
+                id: loader
 
-            Component {
-                id: menuItemComp
+                sourceComponent: Boolean(modelData.title) ? menuItemComp : separatorComp
 
-                StyledMenuItem {
-                    id: item
+                onLoaded: {
+                    loader.item.modelData = modelData
+                    loader.item.width = root.itemWidth
+                }
 
-                    reserveSpaceForInvisibleItems: root.reserveSpaceForInvisibleItems
+                Component {
+                    id: menuItemComp
 
-                    onSubMenuShowed: {
-                        root.closePolicy = PopupView.NoAutoClose
+                    StyledMenuItem {
+                        id: item
+
+                        iconAndCheckMarkMode: {
+                            if (privateProperties.hasItemsWithIconAndCheckable) {
+                                return StyledMenuItem.ShowBoth
+                            } else if (privateProperties.hasItemsWithIconOrCheckable) {
+                                return StyledMenuItem.ShowOne
+                            }
+                            return StyledMenuItem.None
+                        }
+
+                        reserveSpaceForShortcutOrSubmenuIndicator:
+                            privateProperties.hasItemsWithSubmenu || privateProperties.hasItemsWithShortcut
+
+                        onSubMenuShowed: {
+                            root.closePolicy = PopupView.NoAutoClose
+                        }
+
+                        onSubMenuClosed: {
+                            root.closePolicy = PopupView.CloseOnPressOutsideParent
+                        }
+
+                        onHandleAction: {
+                            // NOTE: reset view state
+                            view.update()
+
+                            root.handleAction(actionCode, actionIndex)
+                        }
                     }
+                }
 
-                    onSubMenuClosed: {
-                        root.closePolicy = PopupView.CloseOnPressOutsideParent
-                    }
+                Component {
+                    id: separatorComp
 
-                    onHandleAction: {
-                        // NOTE: reset view state
-                        view.update()
+                    Rectangle {
+                        height: 1
+                        color: ui.theme.strokeColor
 
-                        root.handleAction(actionCode, actionIndex)
+                        property var modelData
                     }
                 }
             }
+        }
 
-            Component {
-                id: separatorComp
+        Canvas {
+            visible: item.showSubitemsByPressAndHoldRole
 
-                Rectangle {
-                    height: 1
-                    color: ui.theme.strokeColor
+            width: 4
+            height: 4
 
-                    property var modelData
-                }
+            anchors.margins: 2
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+
+            onPaint: {
+                const ctx = getContext("2d");
+                ctx.fillStyle = ui.theme.fontPrimaryColor;
+                ctx.moveTo(width, 0);
+                ctx.lineTo(width, height);
+                ctx.lineTo(0, height);
+                ctx.closePath();
+                ctx.fill();
             }
         }
     }

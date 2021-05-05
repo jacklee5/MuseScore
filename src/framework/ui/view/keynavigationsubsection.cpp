@@ -43,14 +43,24 @@ QString KeyNavigationSubSection::name() const
     return AbstractKeyNavigation::name();
 }
 
-int KeyNavigationSubSection::order() const
+const IKeyNavigation::Index& KeyNavigationSubSection::index() const
 {
-    return AbstractKeyNavigation::order();
+    return AbstractKeyNavigation::index();
+}
+
+mu::async::Channel<IKeyNavigation::Index> KeyNavigationSubSection::indexChanged() const
+{
+    return AbstractKeyNavigation::indexChanged();
 }
 
 bool KeyNavigationSubSection::enabled() const
 {
     return AbstractKeyNavigation::enabled();
+}
+
+mu::async::Channel<bool> KeyNavigationSubSection::enabledChanged() const
+{
+    return AbstractKeyNavigation::enabledChanged();
 }
 
 bool KeyNavigationSubSection::active() const
@@ -68,9 +78,34 @@ mu::async::Channel<bool> KeyNavigationSubSection::activeChanged() const
     return AbstractKeyNavigation::activeChanged();
 }
 
-const QSet<IKeyNavigationControl*>& KeyNavigationSubSection::controls() const
+void KeyNavigationSubSection::setDirection(QmlDirection direction)
+{
+    if (m_direction == direction) {
+        return;
+    }
+
+    m_direction = direction;
+    emit directionChanged(m_direction);
+}
+
+KeyNavigationSubSection::QmlDirection KeyNavigationSubSection::direction_property() const
+{
+    return m_direction;
+}
+
+IKeyNavigationSubSection::Direction KeyNavigationSubSection::direction() const
+{
+    return static_cast<Direction>(m_direction);
+}
+
+const std::set<IKeyNavigationControl*>& KeyNavigationSubSection::controls() const
 {
     return m_controls;
+}
+
+mu::async::Notification KeyNavigationSubSection::controlsListChanged() const
+{
+    return m_controlsListChanged;
 }
 
 mu::async::Channel<SubSectionControl> KeyNavigationSubSection::forceActiveRequested() const
@@ -99,6 +134,8 @@ void KeyNavigationSubSection::setSection(KeyNavigationSection* section)
     if (m_section) {
         connect(m_section, &KeyNavigationSection::destroyed, this, &KeyNavigationSubSection::onSectionDestroyed);
     }
+
+    emit sectionChanged(m_section);
 }
 
 void KeyNavigationSubSection::onSectionDestroyed()
@@ -108,13 +145,13 @@ void KeyNavigationSubSection::onSectionDestroyed()
 
 void KeyNavigationSubSection::componentComplete()
 {
-    LOGD() << "Completed: " << m_name << ", order: " << m_order;
+    LOGD() << "Completed: " << m_name << ", order: " << order();
 
     IF_ASSERT_FAILED(!m_name.isEmpty()) {
         return;
     }
 
-    IF_ASSERT_FAILED(m_order > -1) {
+    IF_ASSERT_FAILED(order() > -1) {
         return;
     }
 
@@ -134,6 +171,10 @@ void KeyNavigationSubSection::addControl(KeyNavigationControl* control)
     control->forceActiveRequested().onReceive(this, [this](IKeyNavigationControl* c) {
         m_forceActiveRequested.send(std::make_tuple(this, c));
     });
+
+    if (m_controlsListChanged.isConnected()) {
+        m_controlsListChanged.notify();
+    }
 }
 
 void KeyNavigationSubSection::removeControl(KeyNavigationControl* control)
@@ -142,6 +183,10 @@ void KeyNavigationSubSection::removeControl(KeyNavigationControl* control)
         return;
     }
 
-    m_controls.remove(control);
+    m_controls.erase(control);
     control->forceActiveRequested().resetOnReceive(this);
+
+    if (m_controlsListChanged.isConnected()) {
+        m_controlsListChanged.notify();
+    }
 }

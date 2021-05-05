@@ -41,8 +41,11 @@ private:
     ui::MenuItemList pageItems() const;
     ui::MenuItemList elementItems() const;
 
-    ui::MenuItemList defaultCopyPasteItems() const;
-};
+    uicomponents::MenuItemList defaultCopyPasteItems() const;
+
+    uicomponents::MenuItem makeMenu(const std::string& title, const uicomponents::MenuItemList& actions, bool enabled = true,
+        const actions::ActionCode& menuActionCode = "") const;
+    uicomponents::MenuItemList addViewItems(uicomponents::MenuItemList items) const;
 }
 
 #endif // MU_NOTATION_NOTATIONCONTEXTMENU_H

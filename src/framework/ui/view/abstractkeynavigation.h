@@ -25,13 +25,17 @@
 #include "../ikeynavigation.h"
 
 namespace mu::ui {
-class AbstractKeyNavigation : public QObject, public IKeyNavigation, public QQmlParserStatus
+class AbstractKeyNavigation : public QObject, public QQmlParserStatus
 {
     Q_OBJECT
     Q_INTERFACES(QQmlParserStatus)
 
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
+
+    // see IKeyNavigation::Index
     Q_PROPERTY(int order READ order WRITE setOrder NOTIFY orderChanged)
+    Q_PROPERTY(int column READ column WRITE setColumn NOTIFY columnChanged)
+    Q_PROPERTY(int row READ row WRITE setRow NOTIFY rowChanged)
 
     Q_PROPERTY(bool enabled READ enabled WRITE setEnabled NOTIFY enabledChanged)
     Q_PROPERTY(bool active READ active NOTIFY activeChanged)
@@ -39,11 +43,20 @@ class AbstractKeyNavigation : public QObject, public IKeyNavigation, public QQml
 public:
     explicit AbstractKeyNavigation(QObject* parent = nullptr);
 
-    QString name() const override;
-    int order() const override;
-    bool enabled() const override;
-    bool active() const override;
-    async::Channel<bool> activeChanged() const override;
+    int order() const;
+    int column() const;
+    int row() const;
+
+    QString name() const;
+
+    const IKeyNavigation::Index& index() const;
+    async::Channel<IKeyNavigation::Index> indexChanged() const;
+
+    bool enabled() const;
+    async::Channel<bool> enabledChanged() const;
+
+    bool active() const;
+    async::Channel<bool> activeChanged() const;
 
     // QQmlParserStatus
     void classBegin() override;
@@ -52,20 +65,28 @@ public:
 public slots:
     void setName(QString name);
     void setOrder(int order);
+    void setColumn(int column);
+    void setRow(int row);
     void setEnabled(bool enabled);
-    void setActive(bool active) override;
+    void setActive(bool active);
 
 signals:
     void nameChanged(QString name);
     void orderChanged(int order);
+    void columnChanged(int column);
+    void rowChanged(int row);
     void enabledChanged(bool enabled);
     void activeChanged(bool active);
 
 protected:
 
     QString m_name;
-    int m_order = -1;
+    IKeyNavigation::Index m_index;
+    async::Channel<IKeyNavigation::Index> m_indexChanged;
+
     bool m_enabled = true;
+    async::Channel<bool> m_enabledChanged;
+
     bool m_active = false;
     async::Channel<bool> m_activeChanged;
 };

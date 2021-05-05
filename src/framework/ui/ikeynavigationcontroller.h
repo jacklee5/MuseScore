@@ -32,6 +32,8 @@ public:
 
     virtual void reg(IKeyNavigationSection* s) = 0;
     virtual void unreg(IKeyNavigationSection* s) = 0;
+
+    virtual const std::set<IKeyNavigationSection*>& sections() const = 0;
 };
 }
 

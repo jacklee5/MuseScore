@@ -26,26 +26,53 @@
 #include "actions/iactionsdispatcher.h"
 #include "actions/actionable.h"
 #include "async/asyncable.h"
+#include "global/iinteractive.h"
 
 namespace mu::ui {
 class KeyNavigationController : public IKeyNavigationController, public actions::Actionable, public async::Asyncable
 {
     INJECT(ui, actions::IActionsDispatcher, dispatcher)
+    INJECT(ui, framework::IInteractive, interactive)
+
 public:
     KeyNavigationController() = default;
+
+    enum MoveDirection {
+        First = 0,
+        Last,
+        Right,
+        Left,
+        Up,
+        Down
+    };
 
     void reg(IKeyNavigationSection* s) override;
     void unreg(IKeyNavigationSection* s) override;
 
+    const std::set<IKeyNavigationSection*>& sections() const override;
+
     void init();
 
 private:
+
+    void devShowControls();
+
     void goToNextSection();
     void goToPrevSection();
     void goToNextSubSection();
     void goToPrevSubSection();
-    void goToNextControl();
-    void goToPrevControl();
+
+    void goToFirstControl();
+    void goToLastControl();
+    void goToNextRowControl();
+    void goToPrevRowControl();
+
+    void goToControl(MoveDirection direction, IKeyNavigationSubSection* activeSubSec = nullptr);
+
+    void onLeft();
+    void onRight();
+    void onUp();
+    void onDown();
 
     void doTriggerControl();
     void onForceActiveRequested(IKeyNavigationSection* sec, IKeyNavigationSubSection* sub, IKeyNavigationControl* ctrl);
@@ -54,11 +81,17 @@ private:
     void doDeactivateSection(IKeyNavigationSection* s);
     void doActivateSubSection(IKeyNavigationSubSection* s);
     void doDeactivateSubSection(IKeyNavigationSubSection* s);
+    void doActivateControl(IKeyNavigationControl* c);
+    void doDeactivateControl(IKeyNavigationControl* c);
 
-    const QSet<IKeyNavigationSubSection*>& subsectionsOfActiveSection(bool doActiveIfNoAnyActive = true);
-    const QSet<IKeyNavigationControl*>& controlsOfActiveSubSection(bool doActiveIfNoAnyActive = false);
+    void doActivateFirst();
+    void doActivateLast();
 
-    QSet<IKeyNavigationSection*> m_sections;
+    IKeyNavigationSection* activeSection() const;
+    IKeyNavigationSubSection* activeSubSection() const;
+    IKeyNavigationControl* activeControl() const;
+
+    std::set<IKeyNavigationSection*> m_sections;
 };
 }
 

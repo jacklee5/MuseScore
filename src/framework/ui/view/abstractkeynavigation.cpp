@@ -40,19 +40,71 @@ QString AbstractKeyNavigation::name() const
     return m_name;
 }
 
+const IKeyNavigation::Index& AbstractKeyNavigation::index() const
+{
+    return m_index;
+}
+
+mu::async::Channel<IKeyNavigation::Index> AbstractKeyNavigation::indexChanged() const
+{
+    return m_indexChanged;
+}
+
 void AbstractKeyNavigation::setOrder(int order)
 {
-    if (m_order == order) {
+    if (m_index.order() == order) {
         return;
     }
 
-    m_order = order;
-    emit orderChanged(m_order);
+    m_index.setOrder(order);
+    emit orderChanged(order);
+
+    if (m_indexChanged.isConnected()) {
+        m_indexChanged.send(m_index);
+    }
 }
 
 int AbstractKeyNavigation::order() const
 {
-    return m_order;
+    return m_index.order();
+}
+
+void AbstractKeyNavigation::setColumn(int column)
+{
+    if (m_index.column == column) {
+        return;
+    }
+
+    m_index.column = column;
+    emit columnChanged(column);
+
+    if (m_indexChanged.isConnected()) {
+        m_indexChanged.send(m_index);
+    }
+}
+
+int AbstractKeyNavigation::column() const
+{
+    return m_index.column;
+}
+
+void AbstractKeyNavigation::setRow(int row)
+{
+    if (m_index.row == row) {
+        return;
+    }
+
+    m_index.row = row;
+    emit rowChanged(row);
+
+    if (m_indexChanged.isConnected()) {
+        m_indexChanged.send(m_index);
+    }
+}
+
+int AbstractKeyNavigation::row() const
+{
+    return m_index.row;
 }
 
 void AbstractKeyNavigation::setEnabled(bool enabled)
@@ -63,11 +115,20 @@ void AbstractKeyNavigation::setEnabled(bool enabled)
 
     m_enabled = enabled;
     emit enabledChanged(m_enabled);
+
+    if (m_enabledChanged.isConnected()) {
+        m_enabledChanged.send(m_enabled);
+    }
 }
 
 bool AbstractKeyNavigation::enabled() const
 {
     return m_enabled;
+}
+
+mu::async::Channel<bool> AbstractKeyNavigation::enabledChanged() const
+{
+    return m_enabledChanged;
 }
 
 void AbstractKeyNavigation::setActive(bool active)
@@ -78,7 +139,10 @@ void AbstractKeyNavigation::setActive(bool active)
 
     m_active = active;
     emit activeChanged(m_active);
-    m_activeChanged.send(m_active);
+
+    if (m_activeChanged.isConnected()) {
+        m_activeChanged.send(m_active);
+    }
 }
 
 bool AbstractKeyNavigation::active() const

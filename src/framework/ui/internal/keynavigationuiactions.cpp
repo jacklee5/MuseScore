@@ -24,6 +24,9 @@ using namespace mu::ui;
 using namespace mu::actions;
 
 const UiActionList KeyNavigationUiActions::m_actions = {
+    UiAction("nav-dev-show-controls",
+             mu::context::UiCtxAny
+             ),
     UiAction("nav-next-section",
              mu::context::UiCtxAny
              ),
@@ -42,7 +45,25 @@ const UiActionList KeyNavigationUiActions::m_actions = {
     UiAction("nav-left",
              mu::context::UiCtxAny
              ),
-    UiAction("nav-trigger",
+    UiAction("nav-up",
+             mu::context::UiCtxAny
+             ),
+    UiAction("nav-down",
+             mu::context::UiCtxAny
+             ),
+    UiAction("nav-trigger-control",
+             mu::context::UiCtxAny
+             ),
+    UiAction("nav-first-control",
+             mu::context::UiCtxAny
+             ),
+    UiAction("nav-last-control",
+             mu::context::UiCtxAny
+             ),
+    UiAction("nav-nextrow-control",
+             mu::context::UiCtxAny
+             ),
+    UiAction("nav-prevrow-control",
              mu::context::UiCtxAny
              )
 };

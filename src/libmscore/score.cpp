@@ -3407,6 +3407,12 @@ void Score::selectRange(Element* e, int staffIdx)
         if (selectedElement && e->type() == selectedElement->type()) {
             int idx1 = selectedElement->staffIdx();
             int idx2 = e->staffIdx();
+            if (idx2 < idx1) {
+                int temp = idx1;
+                idx1 = idx2;
+                idx2 = temp;
+            }
+
             if (idx1 >= 0 && idx2 >= 0) {
                 Fraction t1 = selectedElement->tick();
                 Fraction t2 = e->tick();
@@ -3421,7 +3427,7 @@ void Score::selectRange(Element* e, int staffIdx)
                     s2 = s2->next1MM(SegmentType::ChordRest);
                 }
 
-                if (s1 && s2) {
+                if (s1) {
                     _selection.setRange(s1, s2, idx1, idx2 + 1);
                     selectSimilarInRange(e);
                     if (selectedElement->track() == e->track()) {

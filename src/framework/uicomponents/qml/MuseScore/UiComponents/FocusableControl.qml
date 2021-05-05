@@ -12,13 +12,6 @@ FocusScope {
 
     property alias keynav: keynavItem
 
-    signal internalPressed()
-    signal internalReleased()
-    signal internalClicked()
-    signal internalPressAndHold()
-
-    signal internalTriggered()
-
     function insureActiveFocus() {
         if (!root.activeFocus) {
             root.forceActiveFocus()
@@ -32,15 +25,12 @@ FocusScope {
     KeyNavigationControl {
         id: keynavItem
         name: root.objectName
+        enabled: root.enabled
 
         onActiveChanged: {
             if (keynavItem.active) {
                 root.insureActiveFocus()
             }
-        }
-
-        onTriggered: {
-            root.internalTriggered()
         }
     }
 
@@ -63,19 +53,6 @@ FocusScope {
 
         onClicked: {
             root.insureActiveFocus()
-            root.internalClicked()
-        }
-
-        onPressAndHold: {
-            root.internalPressAndHold()
-        }
-
-        onPressed: {
-            root.internalPressed()
-        }
-
-        onReleased: {
-            root.internalReleased()
         }
     }
 }
