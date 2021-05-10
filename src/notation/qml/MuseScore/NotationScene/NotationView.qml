@@ -74,6 +74,14 @@ FocusScope {
                 }
 
                 Component {
+                    id: subMenu
+
+                    ContextMenu {
+
+                    }
+                }
+
+                Component {
                     id: menuSeparator
                     MenuSeparator {
 
